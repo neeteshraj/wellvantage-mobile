@@ -1,0 +1,34 @@
+{
+  "common": {
+    "back": "Back",
+    "continue": "Continue",
+    "cancel": "Cancel",
+    "save": "Save",
+    "delete": "Delete",
+    "edit": "Edit",
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success"
+  },
+  "auth": {
+    "signUp": {
+      "title": "Sign Up",
+      "welcome": "Welcome! Manage, Track and Grow your Gym with WellVantage.",
+      "continueWithGoogle": "Continue with Google"
+    },
+    "signIn": {
+      "title": "Sign In",
+      "email": "Email",
+      "password": "Password",
+      "forgotPassword": "Forgot Password?",
+      "noAccount": "Don't have an account?",
+      "signUpLink": "Sign Up"
+    }
+  },
+  "screens": {
+    "home": {
+      "title": "Home",
+      "welcome": "Welcome to Wellvantage"
+    }
+  }
+}
