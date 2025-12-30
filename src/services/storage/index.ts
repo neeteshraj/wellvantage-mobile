@@ -1,36 +1,12 @@
 // Storage service using AsyncStorage
-// Note: Install @react-native-async-storage/async-storage before using
 
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import {STORAGE_KEYS} from '../../constants';
-
-// Placeholder type - replace with AsyncStorage when installed
-type StorageType = {
-  getItem: (key: string) => Promise<string | null>;
-  setItem: (key: string, value: string) => Promise<void>;
-  removeItem: (key: string) => Promise<void>;
-  clear: () => Promise<void>;
-};
-
-// You'll need to install and import AsyncStorage:
-// import AsyncStorage from '@react-native-async-storage/async-storage';
-// Then replace this with: const storage: StorageType = AsyncStorage;
-let storage: StorageType | null = null;
-
-export const initStorage = (storageImpl: StorageType) => {
-  storage = storageImpl;
-};
-
-const getStorage = (): StorageType => {
-  if (!storage) {
-    throw new Error('Storage not initialized. Call initStorage first.');
-  }
-  return storage;
-};
 
 export const StorageService = {
   async get<T>(key: string): Promise<T | null> {
     try {
-      const value = await getStorage().getItem(key);
+      const value = await AsyncStorage.getItem(key);
       return value ? JSON.parse(value) : null;
     } catch (error) {
       console.error(`Error getting ${key} from storage:`, error);
@@ -40,7 +16,7 @@ export const StorageService = {
 
   async set<T>(key: string, value: T): Promise<boolean> {
     try {
-      await getStorage().setItem(key, JSON.stringify(value));
+      await AsyncStorage.setItem(key, JSON.stringify(value));
       return true;
     } catch (error) {
       console.error(`Error setting ${key} in storage:`, error);
@@ -50,7 +26,7 @@ export const StorageService = {
 
   async remove(key: string): Promise<boolean> {
     try {
-      await getStorage().removeItem(key);
+      await AsyncStorage.removeItem(key);
       return true;
     } catch (error) {
       console.error(`Error removing ${key} from storage:`, error);
@@ -60,7 +36,7 @@ export const StorageService = {
 
   async clear(): Promise<boolean> {
     try {
-      await getStorage().clear();
+      await AsyncStorage.clear();
       return true;
     } catch (error) {
       console.error('Error clearing storage:', error);
@@ -68,7 +44,7 @@ export const StorageService = {
     }
   },
 
-  // Convenience methods for common operations
+  // Convenience methods for auth tokens
   async getAuthToken(): Promise<string | null> {
     return this.get<string>(STORAGE_KEYS.AUTH_TOKEN);
   },
@@ -79,5 +55,17 @@ export const StorageService = {
 
   async removeAuthToken(): Promise<boolean> {
     return this.remove(STORAGE_KEYS.AUTH_TOKEN);
+  },
+
+  async getRefreshToken(): Promise<string | null> {
+    return this.get<string>(STORAGE_KEYS.REFRESH_TOKEN);
+  },
+
+  async setRefreshToken(token: string): Promise<boolean> {
+    return this.set(STORAGE_KEYS.REFRESH_TOKEN, token);
+  },
+
+  async removeRefreshToken(): Promise<boolean> {
+    return this.remove(STORAGE_KEYS.REFRESH_TOKEN);
   },
 };

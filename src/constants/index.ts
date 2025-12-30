@@ -13,6 +13,7 @@ export const API = {
 // Storage Keys
 export const STORAGE_KEYS = {
   AUTH_TOKEN: '@wellvantage/auth_token',
+  REFRESH_TOKEN: '@wellvantage/refresh_token',
   USER_DATA: '@wellvantage/user_data',
   ONBOARDING_COMPLETE: '@wellvantage/onboarding_complete',
   THEME: '@wellvantage/theme',

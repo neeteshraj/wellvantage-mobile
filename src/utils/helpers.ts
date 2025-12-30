@@ -42,7 +42,7 @@ export const debounce = <T extends (...args: unknown[]) => unknown>(
   func: T,
   wait: number,
 ): ((...args: Parameters<T>) => void) => {
-  let timeoutId: NodeJS.Timeout | null = null;
+  let timeoutId: ReturnType<typeof setTimeout> | null = null;
 
   return (...args: Parameters<T>) => {
     if (timeoutId) {

@@ -1,0 +1,49 @@
+// Auth API service
+
+import {apiClient} from '../api/client';
+import {AuthUser} from '../../features/auth/types';
+
+interface GoogleAuthResponse {
+  user: AuthUser;
+  accessToken: string;
+  refreshToken: string;
+}
+
+interface RefreshTokenResponse {
+  accessToken: string;
+}
+
+export const authService = {
+  /**
+   * Authenticate with Google ID token
+   */
+  async googleAuth(idToken: string): Promise<GoogleAuthResponse> {
+    const response = await apiClient.post<GoogleAuthResponse>('/auth/google', {
+      idToken,
+    });
+    return response.data;
+  },
+
+  /**
+   * Refresh access token using refresh token
+   */
+  async refreshToken(refreshToken: string): Promise<RefreshTokenResponse> {
+    const response = await apiClient.post<RefreshTokenResponse>(
+      '/auth/refresh',
+      {
+        refreshToken,
+      },
+    );
+    return response.data;
+  },
+
+  /**
+   * Get current user profile
+   */
+  async getProfile(): Promise<AuthUser> {
+    const response = await apiClient.get<{id: string; email: string}>(
+      '/auth/me',
+    );
+    return response.data as AuthUser;
+  },
+};

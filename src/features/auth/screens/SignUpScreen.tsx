@@ -1,5 +1,7 @@
 import React from 'react';
 import {
+  ActivityIndicator,
+  Alert,
   Image,
   Platform,
   StyleSheet,
@@ -10,12 +12,14 @@ import {
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {useNavigation} from '@react-navigation/native';
 import {t} from '../../../i18n';
+import {useAuth} from '../../../context/AuthContext';
 
 const GoogleIcon = require('../../../assets/icons/google.png');
 const ArrowBackIcon = require('../../../assets/icons/arrow-back.png');
 
 export const SignUpScreen: React.FC = () => {
   const navigation = useNavigation();
+  const {signInWithGoogle, isLoading, error, clearError} = useAuth();
 
   const handleGoBack = () => {
     if (navigation.canGoBack()) {
@@ -23,10 +27,22 @@ export const SignUpScreen: React.FC = () => {
     }
   };
 
-  const handleGoogleSignUp = () => {
-    // TODO: Implement Google Sign Up
-    console.log('Google Sign Up pressed');
+  const handleGoogleSignUp = async () => {
+    try {
+      await signInWithGoogle();
+    } catch (err) {
+      // Error is handled in AuthContext
+    }
   };
+
+  // Show error alert when error occurs
+  React.useEffect(() => {
+    if (error) {
+      Alert.alert('Sign In Error', error, [
+        {text: 'OK', onPress: clearError},
+      ]);
+    }
+  }, [error, clearError]);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -46,13 +62,20 @@ export const SignUpScreen: React.FC = () => {
 
         {/* Google Sign Up Button */}
         <TouchableOpacity
-          style={styles.googleButton}
+          style={[styles.googleButton, isLoading && styles.googleButtonDisabled]}
           onPress={handleGoogleSignUp}
-          activeOpacity={0.7}>
-          <Image source={GoogleIcon} style={styles.googleIcon} />
-          <Text style={styles.googleButtonText}>
-            {t('auth.signUp.continueWithGoogle')}
-          </Text>
+          activeOpacity={0.7}
+          disabled={isLoading}>
+          {isLoading ? (
+            <ActivityIndicator size="small" color="#333333" />
+          ) : (
+            <>
+              <Image source={GoogleIcon} style={styles.googleIcon} />
+              <Text style={styles.googleButtonText}>
+                {t('auth.signUp.continueWithGoogle')}
+              </Text>
+            </>
+          )}
         </TouchableOpacity>
       </View>
     </SafeAreaView>
@@ -124,6 +147,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     width: '100%',
     maxWidth: 300,
+    minHeight: 52,
+  },
+  googleButtonDisabled: {
+    opacity: 0.6,
   },
   googleIcon: {
     width: 24,
