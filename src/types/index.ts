@@ -1,11 +1,5 @@
 // Global type definitions
 
-// Navigation types
-export type RootStackParamList = {
-  Home: undefined;
-  // Add more screens as needed
-};
-
 // Common types
 export interface User {
   id: string;
