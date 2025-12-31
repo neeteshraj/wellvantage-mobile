@@ -1,15 +1,29 @@
-import React, {useState} from 'react';
+import React, {useState, useCallback, useEffect, useRef} from 'react';
 import {
   StyleSheet,
   Text,
   View,
   TouchableOpacity,
-  FlatList,
-  Modal,
   TextInput,
   ScrollView,
+  Image,
+  useWindowDimensions,
 } from 'react-native';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withSpring,
+  withTiming,
+  interpolate,
+  Extrapolation,
+  Easing,
+  runOnJS,
+} from 'react-native-reanimated';
 import {COLORS} from '../../../constants/colors';
+
+// Icons
+import chevronDownIcon from '../../../assets/icons/chevron-down.png';
+import trashIcon from '../../../assets/icons/trash.png';
 
 interface WorkoutPlan {
   id: string;
@@ -24,49 +38,183 @@ interface Exercise {
   reps: string;
 }
 
-interface DayPlan {
+interface Day {
   id: string;
   dayNumber: number;
   bodyPart: string;
   exercises: Exercise[];
 }
 
-const MOCK_WORKOUT_PLANS: WorkoutPlan[] = [
-  {id: '1', name: "Beginner's Workout - 3 Days", days: 3},
-  {id: '2', name: "Beginner's Full Body - 1 Day", days: 1},
-];
 
-export const WorkoutTab: React.FC = () => {
-  const [workoutPlans, setWorkoutPlans] =
-    useState<WorkoutPlan[]>(MOCK_WORKOUT_PLANS);
-  const [isModalVisible, setIsModalVisible] = useState(false);
+const SPRING_CONFIG = {
+  damping: 20,
+  stiffness: 300,
+  mass: 0.5,
+};
+
+const TIMING_CONFIG = {
+  duration: 300,
+  easing: Easing.bezier(0.4, 0, 0.2, 1),
+};
+
+const ITEM_HEIGHT = 72;
+const MAX_VISIBLE_ITEMS = 7;
+const MAX_ACCORDION_HEIGHT = ITEM_HEIGHT * MAX_VISIBLE_ITEMS;
+
+interface WorkoutTabProps {
+  onFormVisibilityChange?: (isVisible: boolean) => void;
+  onBackPress?: () => void;
+  isFormVisible?: boolean;
+}
+
+export const WorkoutTab: React.FC<WorkoutTabProps> = ({
+  onFormVisibilityChange,
+  isFormVisible,
+}) => {
+  const {width: screenWidth} = useWindowDimensions();
+  const [workoutPlans, setWorkoutPlans] = useState<WorkoutPlan[]>([]);
+  const [isAccordionOpen, setIsAccordionOpen] = useState(false);
+  const [showAddForm, setShowAddForm] = useState(false);
   const [workoutName, setWorkoutName] = useState('');
-  const [selectedDay, setSelectedDay] = useState(1);
-  const [bodyPart, setBodyPart] = useState('Chest');
-  const [exercises, setExercises] = useState<Exercise[]>([
-    {id: '1', name: 'Chest', sets: '', reps: '5-8'},
-    {id: '2', name: 'Bench Press', sets: '8', reps: '3'},
-    {id: '3', name: 'Bench Press', sets: '8', reps: '5'},
-    {id: '4', name: 'Planks', sets: '3', reps: '30 secs'},
-  ]);
+  const [days, setDays] = useState<Day[]>([]);
   const [notes, setNotes] = useState('');
 
-  const handleDeletePlan = (id: string) => {
-    setWorkoutPlans(plans => plans.filter(plan => plan.id !== id));
+  // Animation values
+  const progress = useSharedValue(0);
+  const screenTransition = useSharedValue(0);
+
+  const toggleAccordion = () => {
+    const newState = !isAccordionOpen;
+    setIsAccordionOpen(newState);
+    progress.value = withSpring(newState ? 1 : 0, SPRING_CONFIG);
   };
 
-  const handleAddExercise = () => {
-    const newExercise: Exercise = {
-      id: Date.now().toString(),
-      name: '',
-      sets: '',
-      reps: '',
+  const openAddForm = useCallback(() => {
+    setShowAddForm(true);
+    screenTransition.value = withTiming(1, TIMING_CONFIG);
+    onFormVisibilityChange?.(true);
+  }, [screenTransition, onFormVisibilityChange]);
+
+  const closeAddForm = useCallback(() => {
+    screenTransition.value = withTiming(0, {
+      ...TIMING_CONFIG,
+      duration: 250,
+    });
+    onFormVisibilityChange?.(false);
+    // Delay setting showAddForm to false until animation completes
+    setTimeout(() => {
+      setShowAddForm(false);
+      // Reset form state
+      setWorkoutName('');
+      setDays([]);
+      setNotes('');
+    }, 250);
+  }, [screenTransition, onFormVisibilityChange]);
+
+  // Handle external back press (from header)
+  const prevIsFormVisible = useRef(isFormVisible);
+  useEffect(() => {
+    // If isFormVisible changed from true to false externally, close the form
+    if (prevIsFormVisible.current === true && isFormVisible === false && showAddForm) {
+      closeAddForm();
+    }
+    prevIsFormVisible.current = isFormVisible;
+  }, [isFormVisible, showAddForm, closeAddForm]);
+
+  const animatedChevronStyle = useAnimatedStyle(() => {
+    const rotation = interpolate(
+      progress.value,
+      [0, 1],
+      [0, 180],
+      Extrapolation.CLAMP,
+    );
+    return {
+      transform: [{rotate: `${rotation}deg`}],
     };
-    setExercises([...exercises, newExercise]);
+  });
+
+  const animatedAccordionStyle = useAnimatedStyle(() => {
+    const totalHeight = Math.min(
+      workoutPlans.length * ITEM_HEIGHT,
+      MAX_ACCORDION_HEIGHT,
+    );
+    const height = interpolate(
+      progress.value,
+      [0, 1],
+      [0, totalHeight],
+      Extrapolation.CLAMP,
+    );
+    const opacity = interpolate(
+      progress.value,
+      [0, 0.3, 1],
+      [0, 0.5, 1],
+      Extrapolation.CLAMP,
+    );
+    const translateY = interpolate(
+      progress.value,
+      [0, 1],
+      [-10, 0],
+      Extrapolation.CLAMP,
+    );
+    return {
+      height,
+      opacity,
+      transform: [{translateY}],
+    };
+  });
+
+  // Screen transition animations
+  const animatedListStyle = useAnimatedStyle(() => {
+    const translateX = interpolate(
+      screenTransition.value,
+      [0, 1],
+      [0, -screenWidth],
+      Extrapolation.CLAMP,
+    );
+    const opacity = interpolate(
+      screenTransition.value,
+      [0, 0.5, 1],
+      [1, 0.5, 0],
+      Extrapolation.CLAMP,
+    );
+    return {
+      transform: [{translateX}],
+      opacity,
+    };
+  });
+
+  const animatedFormStyle = useAnimatedStyle(() => {
+    const translateX = interpolate(
+      screenTransition.value,
+      [0, 1],
+      [screenWidth, 0],
+      Extrapolation.CLAMP,
+    );
+    const opacity = interpolate(
+      screenTransition.value,
+      [0, 0.5, 1],
+      [0, 0.5, 1],
+      Extrapolation.CLAMP,
+    );
+    return {
+      transform: [{translateX}],
+      opacity,
+    };
+  });
+
+  const handleDeletePlan = (id: string) => {
+    const newPlans = workoutPlans.filter(plan => plan.id !== id);
+    setWorkoutPlans(newPlans);
   };
 
-  const handleDeleteExercise = (id: string) => {
-    setExercises(exercises.filter(ex => ex.id !== id));
+  const handleAddDay = () => {
+    const newDay: Day = {
+      id: Date.now().toString(),
+      dayNumber: days.length + 1,
+      bodyPart: '',
+      exercises: [],
+    };
+    setDays([...days, newDay]);
   };
 
   const handleSubmit = () => {
@@ -74,176 +222,232 @@ export const WorkoutTab: React.FC = () => {
       const newPlan: WorkoutPlan = {
         id: Date.now().toString(),
         name: workoutName,
-        days: selectedDay,
+        days: days.length,
       };
       setWorkoutPlans([...workoutPlans, newPlan]);
-      setIsModalVisible(false);
-      setWorkoutName('');
-      setExercises([]);
-      setNotes('');
+      closeAddForm();
     }
   };
 
-  const renderWorkoutPlan = ({item}: {item: WorkoutPlan}) => (
-    <View style={styles.planItem}>
+  const renderWorkoutPlan = (item: WorkoutPlan) => (
+    <View key={item.id} style={styles.planItem}>
       <Text style={styles.planName}>{item.name}</Text>
       <TouchableOpacity
         style={styles.deleteButton}
         onPress={() => handleDeletePlan(item.id)}>
-        <Text style={styles.deleteIcon}>🗑</Text>
+        <Image
+          source={trashIcon}
+          style={styles.trashIcon}
+          resizeMode="contain"
+        />
       </TouchableOpacity>
-    </View>
-  );
-
-  const renderExercise = ({item, index}: {item: Exercise; index: number}) => (
-    <View style={styles.exerciseRow}>
-      <Text style={styles.exerciseName}>{item.name || `Exercise ${index + 1}`}</Text>
-      <View style={styles.exerciseInputs}>
-        <TextInput
-          style={styles.smallInput}
-          value={item.sets}
-          onChangeText={text => {
-            const updated = [...exercises];
-            updated[index].sets = text;
-            setExercises(updated);
-          }}
-          placeholder="Sets"
-          keyboardType="numeric"
-        />
-        <TextInput
-          style={styles.smallInput}
-          value={item.reps}
-          onChangeText={text => {
-            const updated = [...exercises];
-            updated[index].reps = text;
-            setExercises(updated);
-          }}
-          placeholder="Reps"
-        />
-        <TouchableOpacity
-          style={styles.deleteExerciseButton}
-          onPress={() => handleDeleteExercise(item.id)}>
-          <Text style={styles.deleteIcon}>🗑</Text>
-        </TouchableOpacity>
-      </View>
     </View>
   );
 
   return (
     <View style={styles.container}>
-      {/* Dropdown */}
-      <TouchableOpacity style={styles.dropdown}>
-        <Text style={styles.dropdownText}>Custom Workout Plans</Text>
-        <Text style={styles.dropdownArrow}>▼</Text>
-      </TouchableOpacity>
-
-      {/* Workout Plans List */}
-      <FlatList
-        data={workoutPlans}
-        renderItem={renderWorkoutPlan}
-        keyExtractor={item => item.id}
-        contentContainerStyle={styles.listContent}
-      />
-
-      {/* Add Button */}
-      <TouchableOpacity
-        style={styles.addButton}
-        onPress={() => setIsModalVisible(true)}>
-        <Text style={styles.addButtonText}>+</Text>
-      </TouchableOpacity>
-
-      {/* Add Workout Modal */}
-      <Modal
-        visible={isModalVisible}
-        animationType="slide"
-        transparent={true}
-        onRequestClose={() => setIsModalVisible(false)}>
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            {/* Modal Header */}
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Add Workout Plan</Text>
-              <TouchableOpacity
-                style={styles.closeButton}
-                onPress={() => setIsModalVisible(false)}>
-                <Text style={styles.closeIcon}>←</Text>
-              </TouchableOpacity>
-            </View>
-
-            <ScrollView style={styles.modalScroll}>
-              {/* Workout Name Input */}
-              <TextInput
-                style={styles.workoutNameInput}
-                placeholder="Beginner's Workout - 3 days"
-                value={workoutName}
-                onChangeText={setWorkoutName}
+      {/* List View */}
+      <Animated.View
+        style={[styles.screenContainer, animatedListStyle]}
+        pointerEvents={showAddForm ? 'none' : 'auto'}>
+        <View style={styles.contentWrapper}>
+          {/* Accordion Dropdown */}
+          <TouchableOpacity style={styles.dropdown} onPress={toggleAccordion}>
+            <Text style={styles.dropdownText}>Custom Workout Plans</Text>
+            <Animated.View style={animatedChevronStyle}>
+              <Image
+                source={chevronDownIcon}
+                style={styles.chevronIcon}
+                resizeMode="contain"
               />
+            </Animated.View>
+          </TouchableOpacity>
 
-              {/* Day Tabs */}
-              <View style={styles.dayTabs}>
-                <TouchableOpacity
-                  style={[styles.dayTab, selectedDay === 1 && styles.activeDayTab]}>
-                  <Text
-                    style={[
-                      styles.dayTabText,
-                      selectedDay === 1 && styles.activeDayTabText,
-                    ]}>
-                    Day 1
-                  </Text>
-                </TouchableOpacity>
-                <TextInput
-                  style={styles.bodyPartInput}
-                  value={bodyPart}
-                  onChangeText={setBodyPart}
-                  placeholder="Body Part"
-                />
-              </View>
-
-              {/* Add Day Button */}
-              <TouchableOpacity style={styles.addDayButton}>
-                <Text style={styles.addDayButtonText}>+</Text>
-              </TouchableOpacity>
-
-              {/* Exercises Header */}
-              <View style={styles.exercisesHeader}>
-                <Text style={styles.exercisesHeaderText}>Sets</Text>
-                <Text style={styles.exercisesHeaderText}>Reps</Text>
-              </View>
-
-              {/* Exercises List */}
-              <FlatList
-                data={exercises}
-                renderItem={renderExercise}
-                keyExtractor={item => item.id}
-                scrollEnabled={false}
-              />
-
-              {/* Add Exercise Button */}
-              <TouchableOpacity
-                style={styles.addExerciseButton}
-                onPress={handleAddExercise}>
-                <Text style={styles.addExerciseButtonText}>+</Text>
-              </TouchableOpacity>
-
-              {/* Notes */}
-              <TextInput
-                style={styles.notesInput}
-                placeholder="Bench Press; www.benchpress.com&#10;Eat Oats"
-                value={notes}
-                onChangeText={setNotes}
-                multiline
-                numberOfLines={4}
-              />
-              <Text style={styles.wordsRemaining}>45 words remaining</Text>
-
-              {/* Submit Button */}
-              <TouchableOpacity style={styles.submitButton} onPress={handleSubmit}>
-                <Text style={styles.submitButtonText}>Submit</Text>
-              </TouchableOpacity>
+          {/* Accordion Content */}
+          <Animated.View
+            style={[styles.accordionContent, animatedAccordionStyle]}>
+            <ScrollView
+              nestedScrollEnabled
+              showsVerticalScrollIndicator={false}
+              bounces={false}>
+              {workoutPlans.map(renderWorkoutPlan)}
             </ScrollView>
-          </View>
+          </Animated.View>
+
+          {/* Add Button */}
+          <TouchableOpacity style={styles.addButton} onPress={openAddForm}>
+            <Text style={styles.addButtonText}>+</Text>
+          </TouchableOpacity>
         </View>
-      </Modal>
+      </Animated.View>
+
+      {/* Add Form View */}
+      {showAddForm && (
+        <Animated.View
+          style={[styles.screenContainer, styles.formContainer, animatedFormStyle]}>
+          <ScrollView
+            style={styles.formScroll}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled">
+            {/* Workout Name Input */}
+            <TextInput
+              style={styles.workoutNameInput}
+              placeholder="Beginner's Workout - 3 days"
+              placeholderTextColor={COLORS.text.light.secondary}
+              value={workoutName}
+              onChangeText={setWorkoutName}
+            />
+
+            {/* All Day Rows */}
+            {days.map((day, dayIndex) => (
+              <View key={day.id} style={styles.dayRowContainer}>
+                {/* Day Row */}
+                <View style={styles.dayRow}>
+                  <View style={styles.dayTabActive}>
+                    <Text style={styles.dayTabActiveText}>
+                      Day {day.dayNumber}
+                    </Text>
+                  </View>
+                  <TextInput
+                    style={styles.bodyPartInput}
+                    value={day.bodyPart}
+                    onChangeText={(text) => {
+                      const updatedDays = [...days];
+                      updatedDays[dayIndex].bodyPart = text;
+                      setDays(updatedDays);
+                    }}
+                    placeholder="Body Part"
+                    placeholderTextColor={COLORS.text.light.secondary}
+                  />
+                  <TouchableOpacity
+                    style={styles.deleteDayButton}
+                    onPress={() => {
+                      if (days.length > 1) {
+                        const updatedDays = days.filter((_, index) => index !== dayIndex);
+                        updatedDays.forEach((d, idx) => {
+                          d.dayNumber = idx + 1;
+                        });
+                        setDays(updatedDays);
+                      }
+                    }}>
+                    <Image
+                      source={trashIcon}
+                      style={styles.dayTrashIcon}
+                      resizeMode="contain"
+                    />
+                  </TouchableOpacity>
+                </View>
+              </View>
+            ))}
+
+            {/* Add Day Button - below all day rows */}
+            <TouchableOpacity style={styles.addDayButton} onPress={handleAddDay}>
+              <Text style={styles.addDayButtonText}>+</Text>
+            </TouchableOpacity>
+
+            {/* Exercises Section - only shown after days are created */}
+            {days.length > 0 && (
+              <>
+                {/* Exercises Header */}
+                <View style={styles.exercisesHeader}>
+                  <Text style={styles.exercisesHeaderText}>Sets</Text>
+                  <Text style={styles.exercisesHeaderText}>Reps</Text>
+                </View>
+
+                {/* Exercises List - for the first day (or selected day) */}
+                {days[0]?.exercises.map((exercise, exerciseIndex) => (
+                  <View key={exercise.id} style={styles.exerciseRow}>
+                    <TextInput
+                      style={styles.exerciseNameInput}
+                      value={exercise.name}
+                      onChangeText={text => {
+                        const updatedDays = [...days];
+                        updatedDays[0].exercises[exerciseIndex].name = text;
+                        setDays(updatedDays);
+                      }}
+                      placeholder={`Exercise ${exerciseIndex + 1}`}
+                      placeholderTextColor={COLORS.text.light.secondary}
+                    />
+                    <View style={styles.exerciseInputs}>
+                      <TextInput
+                        style={styles.smallInput}
+                        value={exercise.sets}
+                        onChangeText={text => {
+                          const updatedDays = [...days];
+                          updatedDays[0].exercises[exerciseIndex].sets = text;
+                          setDays(updatedDays);
+                        }}
+                        placeholder="Sets"
+                        placeholderTextColor={COLORS.text.light.secondary}
+                        keyboardType="numeric"
+                      />
+                      <TextInput
+                        style={styles.smallInput}
+                        value={exercise.reps}
+                        onChangeText={text => {
+                          const updatedDays = [...days];
+                          updatedDays[0].exercises[exerciseIndex].reps = text;
+                          setDays(updatedDays);
+                        }}
+                        placeholder="Reps"
+                        placeholderTextColor={COLORS.text.light.secondary}
+                      />
+                      <TouchableOpacity
+                        style={styles.deleteExerciseButton}
+                        onPress={() => {
+                          const updatedDays = [...days];
+                          updatedDays[0].exercises = updatedDays[0].exercises.filter(
+                            ex => ex.id !== exercise.id
+                          );
+                          setDays(updatedDays);
+                        }}>
+                        <Image
+                          source={trashIcon}
+                          style={styles.smallTrashIcon}
+                          resizeMode="contain"
+                        />
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                ))}
+
+                {/* Add Exercise Button */}
+                <TouchableOpacity
+                  style={styles.addExerciseButton}
+                  onPress={() => {
+                    const updatedDays = [...days];
+                    updatedDays[0].exercises.push({
+                      id: Date.now().toString(),
+                      name: '',
+                      sets: '',
+                      reps: '',
+                    });
+                    setDays(updatedDays);
+                  }}>
+                  <Text style={styles.addExerciseButtonText}>+</Text>
+                </TouchableOpacity>
+              </>
+            )}
+
+            {/* Notes */}
+            <TextInput
+              style={styles.notesInput}
+              placeholder={'Bench Press: www.benchpress.com\nEat Oats'}
+              placeholderTextColor={COLORS.text.light.secondary}
+              value={notes}
+              onChangeText={setNotes}
+              multiline
+              numberOfLines={4}
+            />
+            <Text style={styles.wordsRemaining}>45 words remaining</Text>
+
+            {/* Submit Button */}
+            <TouchableOpacity style={styles.submitButton} onPress={handleSubmit}>
+              <Text style={styles.submitButtonText}>Submit</Text>
+            </TouchableOpacity>
+          </ScrollView>
+        </Animated.View>
+      )}
     </View>
   );
 };
@@ -253,61 +457,80 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.gray[50],
   },
+  screenContainer: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  contentWrapper: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+  },
   dropdown: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: COLORS.white,
-    margin: 16,
+    alignSelf: 'stretch',
+    backgroundColor: COLORS.surface.light,
     padding: 16,
     borderRadius: 8,
-    borderWidth: 1,
-    borderColor: COLORS.border.light,
+    elevation: 4,
+    shadowColor: COLORS.black,
+    shadowOffset: {width: 0, height: 2},
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
   },
   dropdownText: {
     fontSize: 16,
+    fontFamily: 'Poppins-Regular',
     color: COLORS.text.light.primary,
   },
-  dropdownArrow: {
-    fontSize: 12,
-    color: COLORS.text.light.secondary,
+  chevronIcon: {
+    width: 20,
+    height: 20,
+    tintColor: COLORS.text.light.secondary,
   },
-  listContent: {
-    paddingHorizontal: 16,
+  accordionContent: {
+    overflow: 'hidden',
+    marginTop: 16,
+    alignSelf: 'stretch',
   },
   planItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: COLORS.white,
-    padding: 16,
-    marginBottom: 8,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: COLORS.border.light,
+    paddingVertical: 18,
+    paddingHorizontal: 4,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.divider,
   },
   planName: {
-    fontSize: 14,
+    fontSize: 16,
+    fontFamily: 'Poppins-Regular',
     color: COLORS.text.light.primary,
     flex: 1,
   },
   deleteButton: {
     padding: 8,
   },
-  deleteIcon: {
-    fontSize: 18,
-    color: COLORS.error,
+  trashIcon: {
+    width: 22,
+    height: 22,
+    tintColor: COLORS.error,
+  },
+  smallTrashIcon: {
+    width: 18,
+    height: 18,
+    tintColor: COLORS.error,
   },
   addButton: {
-    position: 'absolute',
-    bottom: 24,
-    alignSelf: 'center',
     width: 48,
     height: 48,
     borderRadius: 24,
     backgroundColor: COLORS.primary,
     justifyContent: 'center',
     alignItems: 'center',
+    marginTop: 24,
     elevation: 4,
     shadowColor: COLORS.black,
     shadowOffset: {width: 0, height: 2},
@@ -319,176 +542,210 @@ const styles = StyleSheet.create({
     color: COLORS.white,
     lineHeight: 32,
   },
-  modalOverlay: {
+  formContainer: {
+    backgroundColor: COLORS.gray[50],
+  },
+  formScroll: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modalContent: {
-    width: '90%',
-    maxHeight: '85%',
-    backgroundColor: COLORS.white,
-    borderRadius: 12,
-    overflow: 'hidden',
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: COLORS.primary,
-    padding: 16,
-  },
-  modalTitle: {
-    flex: 1,
-    fontSize: 18,
-    fontWeight: '600',
-    color: COLORS.white,
-    textAlign: 'center',
-  },
-  closeButton: {
-    position: 'absolute',
-    right: 16,
-    padding: 4,
-  },
-  closeIcon: {
-    fontSize: 20,
-    color: COLORS.white,
-  },
-  modalScroll: {
     padding: 16,
   },
   workoutNameInput: {
-    backgroundColor: COLORS.gray[100],
+    backgroundColor: COLORS.white,
     borderRadius: 8,
-    padding: 12,
+    padding: 14,
     fontSize: 14,
+    fontFamily: 'Poppins-Regular',
+    color: COLORS.text.light.primary,
     marginBottom: 16,
+    borderWidth: 1,
+    borderColor: COLORS.border.light,
   },
-  dayTabs: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  dayRowContainer: {
     marginBottom: 8,
   },
-  dayTab: {
-    backgroundColor: COLORS.gray[200],
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 4,
-    marginRight: 8,
+  dayRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
-  activeDayTab: {
+  dayTabActive: {
+    backgroundColor: COLORS.primary,
+    paddingHorizontal: 28,
+    paddingVertical: 12,
+    borderTopLeftRadius: 24,
+    borderBottomLeftRadius: 24,
+    borderTopRightRadius: 0,
+    borderBottomRightRadius: 0,
+  },
+  dayTabActiveText: {
+    fontSize: 14,
+    fontFamily: 'Poppins-SemiBold',
+    color: COLORS.white,
+  },
+  dayTabsScrollContainer: {
+    marginBottom: 12,
+  },
+  dayTabsScroll: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  dayTabSmall: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: COLORS.gray[200],
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  dayTabSmallActive: {
     backgroundColor: COLORS.primary,
   },
-  dayTabText: {
-    fontSize: 14,
+  dayTabSmallText: {
+    fontSize: 12,
+    fontFamily: 'Poppins-Medium',
     color: COLORS.text.light.primary,
   },
-  activeDayTabText: {
+  dayTabSmallActiveText: {
     color: COLORS.white,
   },
   bodyPartInput: {
     flex: 1,
-    backgroundColor: COLORS.gray[100],
-    borderRadius: 4,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+    backgroundColor: COLORS.white,
+    borderRadius: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
     fontSize: 14,
+    fontFamily: 'Poppins-Regular',
+    color: COLORS.text.light.primary,
+    borderWidth: 1,
+    borderColor: COLORS.border.light,
+    marginLeft: 8,
+  },
+  deleteDayButton: {
+    padding: 4,
+    marginLeft: 12,
+  },
+  dayTrashIcon: {
+    width: 22,
+    height: 22,
+    tintColor: COLORS.error,
   },
   addDayButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     backgroundColor: COLORS.primary,
     justifyContent: 'center',
     alignItems: 'center',
-    alignSelf: 'flex-start',
-    marginBottom: 16,
+    alignSelf: 'center',
+    marginBottom: 24,
   },
   addDayButtonText: {
-    fontSize: 20,
+    fontSize: 22,
     color: COLORS.white,
-    lineHeight: 22,
+    lineHeight: 24,
   },
   exercisesHeader: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
-    paddingRight: 48,
-    marginBottom: 8,
+    paddingRight: 40,
+    marginBottom: 12,
   },
   exercisesHeaderText: {
-    fontSize: 12,
+    fontSize: 13,
+    fontFamily: 'Poppins-Medium',
     color: COLORS.text.light.secondary,
-    width: 60,
+    width: 58,
     textAlign: 'center',
   },
   exerciseRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 12,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border.light,
   },
   exerciseName: {
     flex: 1,
     fontSize: 14,
+    fontFamily: 'Poppins-Regular',
     color: COLORS.text.light.primary,
+  },
+  exerciseNameInput: {
+    flex: 1,
+    fontSize: 14,
+    fontFamily: 'Poppins-Regular',
+    color: COLORS.text.light.primary,
+    paddingVertical: 4,
+    paddingHorizontal: 0,
   },
   exerciseInputs: {
     flexDirection: 'row',
     alignItems: 'center',
   },
   smallInput: {
-    width: 50,
-    backgroundColor: COLORS.gray[100],
-    borderRadius: 4,
+    width: 54,
+    backgroundColor: COLORS.white,
+    borderRadius: 6,
     paddingHorizontal: 8,
-    paddingVertical: 6,
+    paddingVertical: 8,
     fontSize: 14,
+    fontFamily: 'Poppins-Regular',
+    color: COLORS.text.light.primary,
     textAlign: 'center',
     marginHorizontal: 4,
+    borderWidth: 1,
+    borderColor: COLORS.border.light,
   },
   deleteExerciseButton: {
-    padding: 4,
+    padding: 6,
     marginLeft: 4,
   },
   addExerciseButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     backgroundColor: COLORS.primary,
     justifyContent: 'center',
     alignItems: 'center',
     alignSelf: 'center',
-    marginVertical: 16,
+    marginVertical: 20,
   },
   addExerciseButtonText: {
-    fontSize: 20,
+    fontSize: 22,
     color: COLORS.white,
-    lineHeight: 22,
+    lineHeight: 24,
   },
   notesInput: {
-    backgroundColor: COLORS.gray[100],
+    backgroundColor: COLORS.white,
     borderRadius: 8,
-    padding: 12,
+    padding: 14,
     fontSize: 14,
-    minHeight: 80,
+    fontFamily: 'Poppins-Regular',
+    color: COLORS.text.light.primary,
+    minHeight: 100,
     textAlignVertical: 'top',
+    borderWidth: 1,
+    borderColor: COLORS.border.light,
   },
   wordsRemaining: {
     fontSize: 12,
+    fontFamily: 'Poppins-Regular',
     color: COLORS.primary,
     textAlign: 'right',
-    marginTop: 4,
-    marginBottom: 16,
+    marginTop: 6,
+    marginBottom: 20,
   },
   submitButton: {
     backgroundColor: COLORS.primary,
     borderRadius: 8,
     padding: 16,
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 32,
   },
   submitButtonText: {
     fontSize: 16,
-    fontWeight: '600',
+    fontFamily: 'Poppins-SemiBold',
     color: COLORS.white,
   },
 });

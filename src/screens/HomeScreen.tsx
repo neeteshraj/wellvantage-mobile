@@ -17,7 +17,8 @@ import Animated, {
   useSharedValue,
   useAnimatedStyle,
   withSpring,
-  runOnJS,
+  withTiming,
+  Easing,
 } from 'react-native-reanimated';
 import {COLORS} from '../constants/colors';
 import {WorkoutTab} from '../features/workout/screens/WorkoutTab';
@@ -35,10 +36,39 @@ type TabType = 'Workout' | 'Client' | 'Availability' | 'Book Slots';
 const TABS: TabType[] = ['Workout', 'Client', 'Availability', 'Book Slots'];
 const VISIBLE_TABS = 3;
 
+const SPRING_CONFIG = {
+  damping: 20,
+  stiffness: 200,
+  mass: 0.5,
+};
+
+const TIMING_CONFIG = {
+  duration: 250,
+  easing: Easing.bezier(0.4, 0, 0.2, 1),
+};
+
 export const HomeScreen: React.FC = () => {
   const [activeTab, setActiveTab] = useState<TabType>('Workout');
+  const [isWorkoutFormVisible, setIsWorkoutFormVisible] = useState(false);
   const insets = useSafeAreaInsets();
   const {width: screenWidth} = useWindowDimensions();
+
+  const handleWorkoutFormVisibilityChange = useCallback((isVisible: boolean) => {
+    setIsWorkoutFormVisible(isVisible);
+  }, []);
+
+  const handleBackPress = useCallback(() => {
+    if (isWorkoutFormVisible) {
+      setIsWorkoutFormVisible(false);
+    }
+  }, [isWorkoutFormVisible]);
+
+  const getHeaderTitle = () => {
+    if (activeTab === 'Workout' && isWorkoutFormVisible) {
+      return 'Add Workout Plan';
+    }
+    return 'Workout Management';
+  };
 
   // Calculate tab width to show exactly 3 tabs
   const tabWidth = (screenWidth - 32) / VISIBLE_TABS; // 32 = padding (16 * 2)
@@ -46,12 +76,36 @@ export const HomeScreen: React.FC = () => {
   const maxTranslateX = 0;
   const minTranslateX = -(totalTabsWidth - screenWidth + 32);
 
+  // Shared values for animations
   const translateX = useSharedValue(0);
   const startX = useSharedValue(0);
+  const activeIndex = useSharedValue(0);
+  const indicatorX = useSharedValue(0);
 
-  const handleTabChange = useCallback((tab: TabType) => {
+  const handleTabChange = useCallback((tab: TabType, index: number) => {
     setActiveTab(tab);
-  }, []);
+    activeIndex.value = index;
+
+    // Animate the indicator to the new position
+    indicatorX.value = withSpring(index * tabWidth, SPRING_CONFIG);
+
+    // Auto-scroll to make the tab visible if needed
+    const tabPosition = index * tabWidth;
+    const currentScroll = -translateX.value;
+    const visibleEnd = currentScroll + screenWidth - 32;
+
+    if (tabPosition < currentScroll) {
+      // Tab is to the left of visible area
+      translateX.value = withTiming(-tabPosition, TIMING_CONFIG);
+    } else if (tabPosition + tabWidth > visibleEnd) {
+      // Tab is to the right of visible area
+      const newScroll = tabPosition + tabWidth - (screenWidth - 32);
+      translateX.value = withTiming(
+        Math.max(minTranslateX, -newScroll),
+        TIMING_CONFIG,
+      );
+    }
+  }, [tabWidth, screenWidth, minTranslateX, translateX, indicatorX, activeIndex]);
 
   const panGesture = Gesture.Pan()
     .onStart(() => {
@@ -59,17 +113,23 @@ export const HomeScreen: React.FC = () => {
     })
     .onUpdate(event => {
       const newValue = startX.value + event.translationX;
-      translateX.value = Math.max(minTranslateX, Math.min(maxTranslateX, newValue));
+      // Add rubber band effect at boundaries
+      if (newValue > maxTranslateX) {
+        translateX.value = maxTranslateX + (newValue - maxTranslateX) * 0.3;
+      } else if (newValue < minTranslateX) {
+        translateX.value = minTranslateX + (newValue - minTranslateX) * 0.3;
+      } else {
+        translateX.value = newValue;
+      }
     })
     .onEnd(event => {
-      // Add momentum with spring animation
       const velocity = event.velocityX;
-      const projectedX = translateX.value + velocity * 0.1;
+      const projectedX = translateX.value + velocity * 0.15;
       const clampedX = Math.max(minTranslateX, Math.min(maxTranslateX, projectedX));
+
       translateX.value = withSpring(clampedX, {
+        ...SPRING_CONFIG,
         velocity,
-        damping: 20,
-        stiffness: 150,
       });
     });
 
@@ -77,10 +137,21 @@ export const HomeScreen: React.FC = () => {
     transform: [{translateX: translateX.value}],
   }));
 
+  // Animated indicator style
+  const animatedIndicatorStyle = useAnimatedStyle(() => ({
+    transform: [{translateX: indicatorX.value + translateX.value}],
+    width: tabWidth,
+  }));
+
   const renderTabContent = () => {
     switch (activeTab) {
       case 'Workout':
-        return <WorkoutTab />;
+        return (
+          <WorkoutTab
+            onFormVisibilityChange={handleWorkoutFormVisibilityChange}
+            isFormVisible={isWorkoutFormVisible}
+          />
+        );
       case 'Client':
         return <ClientTab />;
       case 'Availability':
@@ -107,7 +178,7 @@ export const HomeScreen: React.FC = () => {
             />
           </TouchableOpacity>
 
-          <Text style={styles.headerTitle}>Workout Management</Text>
+          <Text style={styles.headerTitle}>{getHeaderTitle()}</Text>
 
           <View style={styles.headerRight}>
             <TouchableOpacity style={styles.refreshButton}>
@@ -117,7 +188,7 @@ export const HomeScreen: React.FC = () => {
                 resizeMode="contain"
               />
             </TouchableOpacity>
-            <TouchableOpacity style={styles.backButton}>
+            <TouchableOpacity style={styles.backButton} onPress={handleBackPress}>
               <Image
                 source={arrowBackIcon}
                 style={styles.backIcon}
@@ -128,25 +199,31 @@ export const HomeScreen: React.FC = () => {
         </View>
       </View>
 
-      {/* Tab Navigation - Swipable */}
+      {/* Tab Navigation - Swipable with sliding indicator */}
       <View style={styles.tabContainer}>
         <GestureDetector gesture={panGesture}>
-          <Animated.View style={[styles.tabsRow, animatedTabsStyle]}>
-            {TABS.map(tab => (
-              <TouchableOpacity
-                key={tab}
-                style={[styles.tab, {width: tabWidth}, activeTab === tab && styles.activeTab]}
-                onPress={() => runOnJS(handleTabChange)(tab)}>
-                <Text
-                  style={[
-                    styles.tabText,
-                    activeTab === tab && styles.activeTabText,
-                  ]}>
-                  {tab}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </Animated.View>
+          <View style={styles.tabWrapper}>
+            <Animated.View style={[styles.tabsRow, animatedTabsStyle]}>
+              {TABS.map((tab, index) => (
+                <TouchableOpacity
+                  key={tab}
+                  style={[styles.tab, {width: tabWidth}]}
+                  onPress={() => handleTabChange(tab, index)}
+                  activeOpacity={0.7}>
+                  <Text
+                    style={[
+                      styles.tabText,
+                      activeTab === tab && styles.activeTabText,
+                    ]}>
+                    {tab}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </Animated.View>
+
+            {/* Animated sliding indicator */}
+            <Animated.View style={[styles.indicator, animatedIndicatorStyle]} />
+          </View>
         </GestureDetector>
       </View>
 
@@ -217,26 +294,33 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     paddingHorizontal: 16,
   },
+  tabWrapper: {
+    position: 'relative',
+  },
   tabsRow: {
     flexDirection: 'row',
   },
   tab: {
-    paddingVertical: 14,
+    paddingTop: 14,
+    paddingBottom: 8,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  activeTab: {
-    borderBottomWidth: 2,
-    borderBottomColor: COLORS.primary,
-  },
   tabText: {
     fontSize: 14,
-    fontFamily: 'Poppins-Regular',
-    color: COLORS.text.light.secondary,
+    fontFamily: 'Poppins-Medium',
+    color: COLORS.text.light.dark,
   },
   activeTabText: {
     color: COLORS.primary,
     fontFamily: 'Poppins-SemiBold',
+  },
+  indicator: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    height: 3,
+    backgroundColor: COLORS.primary,
   },
   content: {
     flex: 1,
