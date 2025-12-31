@@ -14,9 +14,6 @@ export const AuthNavigator: React.FC = () => {
       }}
       initialRouteName="SignUp">
       <Stack.Screen name="SignUp" component={SignUpScreen} />
-      {/* Add more auth screens here */}
-      {/* <Stack.Screen name="Login" component={LoginScreen} /> */}
-      {/* <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} /> */}
     </Stack.Navigator>
   );
 };

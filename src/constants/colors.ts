@@ -2,7 +2,7 @@
 
 export const COLORS = {
   // Primary colors (Green theme from design)
-  primary: '#2E7D32',
+  primary: '#28A745',
   primaryDark: '#1B5E20',
   primaryLight: '#4CAF50',
 
@@ -45,6 +45,7 @@ export const COLORS = {
       primary: '#000000',
       secondary: '#6B7280',
       disabled: '#9CA3AF',
+      dark: '#333333',
     },
     dark: {
       primary: '#FFFFFF',
@@ -53,9 +54,17 @@ export const COLORS = {
     },
   },
 
+  // Surface colors
+  surface: {
+    light: '#F6F6F8',
+  },
+
   // Border colors
   border: {
     light: '#E5E7EB',
     dark: '#374151',
   },
+
+  // Divider colors
+  divider: '#737373',
 } as const;
