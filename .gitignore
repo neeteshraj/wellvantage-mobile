@@ -78,3 +78,8 @@ yarn-error.log
 .env
 .env.local
 .env.*.local
+
+# Keystore
+*.keystore
+*.jks
+android/keystore.properties
