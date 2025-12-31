@@ -1,350 +1,310 @@
-import React, {useState} from 'react';
+import React, {useState, useCallback, useEffect} from 'react';
 import {
   StyleSheet,
   Text,
   View,
   TouchableOpacity,
-  FlatList,
-  Modal,
+  ScrollView,
+  Image,
+  ActivityIndicator,
 } from 'react-native';
+import {Calendar, DateData} from 'react-native-calendars';
 import {COLORS} from '../../../constants/colors';
+import {Client, clientService} from '../../../services/client/clientService';
+import {
+  availabilityService,
+  AvailabilityBlock,
+} from '../../../services/availability/availabilityService';
+import {useAuth} from '../../../context/AuthContext';
 
-interface TimeSlot {
-  id: string;
-  time: string;
-  isBooked: boolean;
-  clientName?: string;
-}
-
-interface DaySlots {
-  date: string;
-  dayName: string;
-  slots: TimeSlot[];
-}
-
-const generateTimeSlots = (): TimeSlot[] => {
-  const slots: TimeSlot[] = [];
-  for (let hour = 6; hour < 22; hour++) {
-    for (let min = 0; min < 60; min += 30) {
-      const time = `${hour.toString().padStart(2, '0')}:${min.toString().padStart(2, '0')}`;
-      const displayTime = `${hour > 12 ? hour - 12 : hour}:${min.toString().padStart(2, '0')} ${hour >= 12 ? 'PM' : 'AM'}`;
-      slots.push({
-        id: time,
-        time: displayTime,
-        isBooked: Math.random() > 0.7,
-        clientName: Math.random() > 0.7 ? 'John Doe' : undefined,
-      });
-    }
-  }
-  return slots;
-};
-
-const MOCK_DAY_SLOTS: DaySlots[] = [
-  {
-    date: '2025-01-06',
-    dayName: 'Monday',
-    slots: generateTimeSlots(),
-  },
-  {
-    date: '2025-01-07',
-    dayName: 'Tuesday',
-    slots: generateTimeSlots(),
-  },
-  {
-    date: '2025-01-08',
-    dayName: 'Wednesday',
-    slots: generateTimeSlots(),
-  },
-];
+// Icons
+import trashIcon from '../../../assets/icons/trash.png';
 
 export const BookSlotsTab: React.FC = () => {
-  const [daySlots] = useState<DaySlots[]>(MOCK_DAY_SLOTS);
-  const [selectedDay, setSelectedDay] = useState<DaySlots>(MOCK_DAY_SLOTS[0]);
-  const [selectedSlot, setSelectedSlot] = useState<TimeSlot | null>(null);
-  const [isModalVisible, setIsModalVisible] = useState(false);
+  const {user} = useAuth();
+  const today = new Date().toISOString().split('T')[0];
+  const [selectedDate, setSelectedDate] = useState<string>(today);
+  const [availableSlots, setAvailableSlots] = useState<AvailabilityBlock[]>([]);
+  const [clients, setClients] = useState<Client[]>([]);
+  const [selectedClient, setSelectedClient] = useState<Client | null>(null);
+  const [isLoadingClients, setIsLoadingClients] = useState(true);
+  const [isLoadingSlots, setIsLoadingSlots] = useState(false);
 
-  const handleSlotPress = (slot: TimeSlot) => {
-    setSelectedSlot(slot);
-    setIsModalVisible(true);
-  };
+  // Fetch clients on mount
+  useEffect(() => {
+    const fetchClients = async () => {
+      try {
+        setIsLoadingClients(true);
+        const fetchedClients = await clientService.getClients();
+        setClients(fetchedClients);
+        if (fetchedClients.length > 0) {
+          setSelectedClient(fetchedClients[0]);
+        }
+      } catch (error) {
+        console.error('Failed to fetch clients:', error);
+      } finally {
+        setIsLoadingClients(false);
+      }
+    };
 
-  const handleBookSlot = () => {
-    // Handle booking logic
-    setIsModalVisible(false);
-  };
+    fetchClients();
+  }, []);
 
-  const renderTimeSlot = ({item}: {item: TimeSlot}) => (
-    <TouchableOpacity
-      style={[styles.slotCard, item.isBooked && styles.bookedSlot]}
-      onPress={() => handleSlotPress(item)}
-      disabled={item.isBooked}>
-      <Text style={[styles.slotTime, item.isBooked && styles.bookedSlotText]}>
-        {item.time}
-      </Text>
-      {item.isBooked && item.clientName && (
-        <Text style={styles.clientName}>{item.clientName}</Text>
-      )}
-      {!item.isBooked && (
-        <Text style={styles.availableText}>Available</Text>
-      )}
-    </TouchableOpacity>
+  // Fetch available slots for the selected date
+  const fetchAvailableSlots = useCallback(
+    async (date: string) => {
+      if (!user?.id) return;
+
+      setIsLoadingSlots(true);
+      try {
+        const slots = await availabilityService.getAvailability(user.id, date);
+        setAvailableSlots(Array.isArray(slots) ? slots : []);
+      } catch (error) {
+        console.error('Failed to fetch availability:', error);
+        setAvailableSlots([]);
+      } finally {
+        setIsLoadingSlots(false);
+      }
+    },
+    [user?.id],
   );
 
+  // Fetch slots when date changes
+  useEffect(() => {
+    fetchAvailableSlots(selectedDate);
+  }, [selectedDate, fetchAvailableSlots]);
+
+  const handleDateSelect = useCallback((day: DateData) => {
+    setSelectedDate(day.dateString);
+  }, []);
+
+  const handleBookSlot = useCallback((slotId: string) => {
+    // Handle booking logic - for now just log
+    console.log('Booking slot:', slotId);
+  }, []);
+
+  const handleDeleteSlot = useCallback((slotId: string) => {
+    setAvailableSlots(prev => prev.filter(slot => slot.id !== slotId));
+  }, []);
+
+  const formatTime = (time: string): string => {
+    // Convert 24h format (HH:mm) to 12h format (h:mm AM/PM)
+    const [hours, minutes] = time.split(':').map(Number);
+    const period = hours >= 12 ? 'PM' : 'AM';
+    const displayHours = hours % 12 || 12;
+    return `${displayHours}:${minutes.toString().padStart(2, '0')} ${period}`;
+  };
+
+  const formatExpiryDate = (dateString: string): string => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+    });
+  };
+
+  const getMarkedDates = useCallback(() => {
+    const marked: Record<
+      string,
+      {selected?: boolean; selectedColor?: string; marked?: boolean; dotColor?: string}
+    > = {};
+
+    // Mark selected date
+    if (selectedDate) {
+      marked[selectedDate] = {
+        selected: true,
+        selectedColor: COLORS.primary,
+      };
+    }
+
+    return marked;
+  }, [selectedDate]);
+
+  if (isLoadingClients) {
+    return (
+      <View style={styles.loadingFullScreen}>
+        <ActivityIndicator size="large" color={COLORS.primary} />
+      </View>
+    );
+  }
+
   return (
-    <View style={styles.container}>
-      {/* Day Selector */}
-      <View style={styles.daySelector}>
-        {daySlots.map(day => (
-          <TouchableOpacity
-            key={day.date}
-            style={[
-              styles.dayTab,
-              selectedDay.date === day.date && styles.selectedDayTab,
-            ]}
-            onPress={() => setSelectedDay(day)}>
-            <Text
-              style={[
-                styles.dayTabText,
-                selectedDay.date === day.date && styles.selectedDayTabText,
-              ]}>
-              {day.dayName.substring(0, 3)}
-            </Text>
-            <Text
-              style={[
-                styles.dayDate,
-                selectedDay.date === day.date && styles.selectedDayDate,
-              ]}>
-              {day.date.split('-')[2]}
-            </Text>
-          </TouchableOpacity>
-        ))}
+    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+      {/* Header Section */}
+      <View style={styles.headerSection}>
+        <Text style={styles.title}>Book Client Slots</Text>
+        {selectedClient ? (
+          <Text style={styles.clientInfo}>
+            {selectedClient.name} has {selectedClient.sessionsRemaining} sessions left to book
+            by {formatExpiryDate(selectedClient.packageExpiryDate)}
+          </Text>
+        ) : (
+          <Text style={styles.clientInfo}>No clients available</Text>
+        )}
       </View>
 
-      {/* Time Slots Grid */}
-      <FlatList
-        data={selectedDay.slots}
-        renderItem={renderTimeSlot}
-        keyExtractor={item => item.id}
-        numColumns={3}
-        contentContainerStyle={styles.slotsGrid}
-        columnWrapperStyle={styles.slotsRow}
-      />
-
-      {/* Legend */}
-      <View style={styles.legend}>
-        <View style={styles.legendItem}>
-          <View style={[styles.legendDot, styles.availableDot]} />
-          <Text style={styles.legendText}>Available</Text>
-        </View>
-        <View style={styles.legendItem}>
-          <View style={[styles.legendDot, styles.bookedDot]} />
-          <Text style={styles.legendText}>Booked</Text>
-        </View>
+      {/* Calendar Section */}
+      <View style={styles.calendarContainer}>
+        <Calendar
+          onDayPress={handleDateSelect}
+          markedDates={getMarkedDates()}
+          minDate={today}
+          theme={{
+            backgroundColor: COLORS.white,
+            calendarBackground: COLORS.white,
+            textSectionTitleColor: COLORS.text.light.secondary,
+            selectedDayBackgroundColor: COLORS.primary,
+            selectedDayTextColor: COLORS.white,
+            todayTextColor: COLORS.primary,
+            dayTextColor: COLORS.text.light.primary,
+            textDisabledColor: COLORS.gray[300],
+            dotColor: COLORS.primary,
+            selectedDotColor: COLORS.white,
+            arrowColor: COLORS.text.light.primary,
+            monthTextColor: COLORS.text.light.primary,
+            textDayFontFamily: 'Poppins-Regular',
+            textMonthFontFamily: 'Poppins-SemiBold',
+            textDayHeaderFontFamily: 'Poppins-Medium',
+            textDayFontSize: 14,
+            textMonthFontSize: 16,
+            textDayHeaderFontSize: 13,
+          }}
+        />
       </View>
 
-      {/* Booking Modal */}
-      <Modal
-        visible={isModalVisible}
-        animationType="slide"
-        transparent={true}
-        onRequestClose={() => setIsModalVisible(false)}>
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Book Slot</Text>
-              <TouchableOpacity
-                style={styles.closeButton}
-                onPress={() => setIsModalVisible(false)}>
-                <Text style={styles.closeIcon}>✕</Text>
-              </TouchableOpacity>
-            </View>
+      {/* Available Slots Section */}
+      <View style={styles.slotsSection}>
+        <Text style={styles.slotsTitle}>Available Slots:</Text>
 
-            <View style={styles.modalBody}>
-              <Text style={styles.modalLabel}>Selected Time</Text>
-              <Text style={styles.modalValue}>{selectedSlot?.time}</Text>
-
-              <Text style={styles.modalLabel}>Date</Text>
-              <Text style={styles.modalValue}>
-                {selectedDay.dayName}, {selectedDay.date}
-              </Text>
-
-              <TouchableOpacity
-                style={styles.bookButton}
-                onPress={handleBookSlot}>
-                <Text style={styles.bookButtonText}>Confirm Booking</Text>
-              </TouchableOpacity>
-            </View>
+        {isLoadingSlots ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator color={COLORS.primary} />
           </View>
-        </View>
-      </Modal>
-    </View>
+        ) : availableSlots.length === 0 ? (
+          <Text style={styles.noSlotsText}>No available slots for this date</Text>
+        ) : (
+          availableSlots.map(slot => (
+            <View key={slot.id} style={styles.slotRow}>
+              <View style={styles.timeContainer}>
+                <Text style={styles.timeText}>
+                  {formatTime(slot.startTime)} - {formatTime(slot.endTime)}
+                </Text>
+              </View>
+
+              <TouchableOpacity
+                style={styles.openButton}
+                onPress={() => handleBookSlot(slot.id)}>
+                <Text style={styles.openButtonText}>Open</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.deleteButton}
+                onPress={() => handleDeleteSlot(slot.id)}>
+                <Image
+                  source={trashIcon}
+                  style={styles.trashIcon}
+                  resizeMode="contain"
+                />
+              </TouchableOpacity>
+            </View>
+          ))
+        )}
+      </View>
+    </ScrollView>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.gray[50],
-  },
-  daySelector: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
     backgroundColor: COLORS.white,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border.light,
   },
-  dayTab: {
+  loadingFullScreen: {
+    flex: 1,
+    justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: COLORS.white,
+  },
+  headerSection: {
     paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
+    paddingTop: 20,
+    paddingBottom: 16,
   },
-  selectedDayTab: {
-    backgroundColor: COLORS.primary,
-  },
-  dayTabText: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: COLORS.text.light.secondary,
-  },
-  selectedDayTabText: {
-    color: COLORS.white,
-  },
-  dayDate: {
+  title: {
     fontSize: 18,
-    fontWeight: '600',
+    fontFamily: 'Poppins-SemiBold',
     color: COLORS.text.light.primary,
-    marginTop: 4,
-  },
-  selectedDayDate: {
-    color: COLORS.white,
-  },
-  slotsGrid: {
-    padding: 16,
-  },
-  slotsRow: {
-    justifyContent: 'space-between',
-    marginBottom: 12,
-  },
-  slotCard: {
-    width: '31%',
-    backgroundColor: COLORS.white,
-    borderRadius: 8,
-    padding: 12,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: COLORS.primary,
-  },
-  bookedSlot: {
-    backgroundColor: COLORS.gray[200],
-    borderColor: COLORS.gray[300],
-  },
-  slotTime: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: COLORS.primary,
-  },
-  bookedSlotText: {
-    color: COLORS.text.light.secondary,
-  },
-  clientName: {
-    fontSize: 11,
-    color: COLORS.text.light.secondary,
-    marginTop: 4,
+    marginBottom: 8,
     textAlign: 'center',
   },
-  availableText: {
-    fontSize: 11,
-    color: COLORS.success,
-    marginTop: 4,
-  },
-  legend: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 24,
-    paddingVertical: 16,
-    backgroundColor: COLORS.white,
-    borderTopWidth: 1,
-    borderTopColor: COLORS.border.light,
-  },
-  legendItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  legendDot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-  },
-  availableDot: {
-    backgroundColor: COLORS.primary,
-  },
-  bookedDot: {
-    backgroundColor: COLORS.gray[300],
-  },
-  legendText: {
-    fontSize: 12,
-    color: COLORS.text.light.secondary,
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modalContent: {
-    width: '85%',
-    backgroundColor: COLORS.white,
-    borderRadius: 12,
-    overflow: 'hidden',
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: COLORS.primary,
-    padding: 16,
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: COLORS.white,
-  },
-  closeButton: {
-    position: 'absolute',
-    right: 16,
-    padding: 4,
-  },
-  closeIcon: {
-    fontSize: 18,
-    color: COLORS.white,
-  },
-  modalBody: {
-    padding: 20,
-  },
-  modalLabel: {
+  clientInfo: {
     fontSize: 14,
+    fontFamily: 'Poppins-Regular',
     color: COLORS.text.light.secondary,
-    marginBottom: 4,
+    lineHeight: 20,
   },
-  modalValue: {
+  calendarContainer: {
+    paddingHorizontal: 16,
+    marginBottom: 24,
+  },
+  slotsSection: {
+    paddingHorizontal: 16,
+    paddingBottom: 32,
+  },
+  slotsTitle: {
     fontSize: 16,
-    fontWeight: '600',
+    fontFamily: 'Poppins-SemiBold',
     color: COLORS.text.light.primary,
     marginBottom: 16,
   },
-  bookButton: {
-    backgroundColor: COLORS.primary,
-    borderRadius: 8,
-    padding: 16,
+  loadingContainer: {
+    paddingVertical: 20,
     alignItems: 'center',
-    marginTop: 8,
   },
-  bookButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: COLORS.white,
+  noSlotsText: {
+    fontSize: 14,
+    fontFamily: 'Poppins-Regular',
+    color: COLORS.text.light.secondary,
+    textAlign: 'center',
+    paddingVertical: 20,
+  },
+  slotRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  timeContainer: {
+    borderWidth: 1,
+    borderColor: COLORS.border.light,
+    borderRadius: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    marginRight: 12,
+  },
+  timeText: {
+    fontSize: 14,
+    fontFamily: 'Poppins-Regular',
+    color: COLORS.text.light.primary,
+  },
+  openButton: {
+    backgroundColor: '#E8F5E9',
+    borderRadius: 8,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    marginRight: 12,
+  },
+  openButtonText: {
+    fontSize: 14,
+    fontFamily: 'Poppins-Medium',
+    color: COLORS.primary,
+  },
+  deleteButton: {
+    padding: 8,
+  },
+  trashIcon: {
+    width: 20,
+    height: 20,
+    tintColor: COLORS.error,
   },
 });

@@ -102,7 +102,7 @@ export const HomeScreen: React.FC = () => {
   }, [tabWidth, screenWidth, minTranslateX, translateX, indicatorX, activeIndex]);
 
   const handleBackPress = useCallback(() => {
-    if (activeTab === 'Availability') {
+    if (activeTab === 'Availability' || activeTab === 'Book Slots') {
       // Go back to first tab (Workout)
       handleTabChange('Workout', 0);
     } else if (isWorkoutFormVisible) {
@@ -173,7 +173,7 @@ export const HomeScreen: React.FC = () => {
       {/* Header - extends to top edge with safe area padding */}
       <View style={[styles.headerWrapper, {paddingTop: insets.top}]}>
         <View style={styles.header}>
-          {activeTab === 'Availability' ? (
+          {activeTab === 'Availability' || activeTab === 'Book Slots' ? (
             <TouchableOpacity style={styles.menuButton} onPress={handleBackPress}>
               <Image
                 source={arrowBackIcon}
@@ -201,7 +201,7 @@ export const HomeScreen: React.FC = () => {
                 resizeMode="contain"
               />
             </TouchableOpacity>
-            {activeTab !== 'Availability' && (
+            {activeTab !== 'Availability' && activeTab !== 'Book Slots' && (
               <TouchableOpacity style={styles.backButton} onPress={handleBackPress}>
                 <Image
                   source={arrowBackIcon}
