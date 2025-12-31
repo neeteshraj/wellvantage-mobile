@@ -40,12 +40,31 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({children}) => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Handle token refresh failure - sign out user
+  const handleTokenRefreshFailure = useCallback(() => {
+    console.log('Token refresh failed, signing out user');
+    // Clear stored data (MMKV is synchronous)
+    StorageService.removeAuthToken();
+    StorageService.removeRefreshToken();
+    StorageService.remove(STORAGE_KEYS.USER_DATA);
+
+    // Clear API client token
+    apiClient.setAuthToken(null);
+
+    // Update state
+    setUser(null);
+    setError('Your session has expired. Please sign in again.');
+  }, []);
+
   // Initialize auth state on app start
   useEffect(() => {
     const initAuth = () => {
       try {
         // Configure Google Sign-In
         configureGoogleSignIn();
+
+        // Set up token refresh failure callback
+        apiClient.setTokenRefreshFailureCallback(handleTokenRefreshFailure);
 
         // Check for stored tokens (MMKV is synchronous)
         const accessToken = StorageService.getAuthToken();
@@ -64,7 +83,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({children}) => {
     };
 
     initAuth();
-  }, []);
+
+    // Cleanup on unmount
+    return () => {
+      apiClient.setTokenRefreshFailureCallback(null);
+    };
+  }, [handleTokenRefreshFailure]);
 
   const handleSignInWithGoogle = useCallback(async () => {
     setIsLoading(true);

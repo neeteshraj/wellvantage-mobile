@@ -11,6 +11,7 @@ interface GoogleAuthResponse {
 
 interface RefreshTokenResponse {
   accessToken: string;
+  refreshToken: string;
 }
 
 interface ApiResponse<T> {

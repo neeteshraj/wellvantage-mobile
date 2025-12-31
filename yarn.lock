@@ -2142,6 +2142,25 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@react-native-community/datetimepicker@npm:^8.5.1":
+  version: 8.5.1
+  resolution: "@react-native-community/datetimepicker@npm:8.5.1"
+  dependencies:
+    invariant: "npm:^2.2.4"
+  peerDependencies:
+    expo: ">=52.0.0"
+    react: "*"
+    react-native: "*"
+    react-native-windows: "*"
+  peerDependenciesMeta:
+    expo:
+      optional: true
+    react-native-windows:
+      optional: true
+  checksum: 10/6d28e8fc00cbc240b676c6c036e1c0c5be16d5dd91e18cff0d703dcc9219abdeab09d031f5c60204c2c3e96f70a194f1316006690990e44ed79f8a2b4ffebfe0
+  languageName: node
+  linkType: hard
+
 "@react-native-google-signin/google-signin@npm:^16.1.1":
   version: 16.1.1
   resolution: "@react-native-google-signin/google-signin@npm:16.1.1"
@@ -5228,7 +5247,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"hoist-non-react-statics@npm:^3.3.0":
+"hoist-non-react-statics@npm:^3.3.0, hoist-non-react-statics@npm:^3.3.1":
   version: 3.3.2
   resolution: "hoist-non-react-statics@npm:3.3.2"
   dependencies:
@@ -6482,7 +6501,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"lodash.debounce@npm:^4.0.8":
+"lodash.debounce@npm:4.0.8, lodash.debounce@npm:^4.0.8":
   version: 4.0.8
   resolution: "lodash.debounce@npm:4.0.8"
   checksum: 10/cd0b2819786e6e80cb9f5cda26b1a8fc073daaf04e48d4cb462fa4663ec9adb3a5387aa22d7129e48eed1afa05b482e2a6b79bfc99b86886364449500cbb00fd
@@ -6503,7 +6522,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"lodash@npm:^4.17.21":
+"lodash@npm:^4.17.15, lodash@npm:^4.17.21":
   version: 4.17.21
   resolution: "lodash@npm:4.17.21"
   checksum: 10/c08619c038846ea6ac754abd6dd29d2568aa705feb69339e836dfa8d8b09abbb2f859371e86863eda41848221f9af43714491467b5b0299122431e202bb0c532
@@ -6625,7 +6644,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"memoize-one@npm:^5.0.0":
+"memoize-one@npm:^5.0.0, memoize-one@npm:^5.2.1":
   version: 5.2.1
   resolution: "memoize-one@npm:5.2.1"
   checksum: 10/b7141dc148b5c6fdd51e77ecf0421fd2581681eb8756e0b3dfbd4fe765b5e2b5a6bc90214bb6f19a96b6aed44de17eda3407142a7be9e24ccd0774bbd9874d1b
@@ -7054,6 +7073,13 @@ __metadata:
   bin:
     mkdirp: bin/cmd.js
   checksum: 10/d71b8dcd4b5af2fe13ecf3bd24070263489404fe216488c5ba7e38ece1f54daf219e72a833a3a2dc404331e870e9f44963a33399589490956bff003a3404d3b2
+  languageName: node
+  linkType: hard
+
+"moment@npm:^2.29.4":
+  version: 2.30.1
+  resolution: "moment@npm:2.30.1"
+  checksum: 10/ae42d876d4ec831ef66110bdc302c0657c664991e45cf2afffc4b0f6cd6d251dde11375c982a5c0564ccc0fa593fc564576ddceb8c8845e87c15f58aa6baca69
   languageName: node
   linkType: hard
 
@@ -7632,7 +7658,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"prop-types@npm:^15.8.1":
+"prop-types@npm:15.8.1, prop-types@npm:^15.5.10, prop-types@npm:^15.8.1":
   version: 15.8.1
   resolution: "prop-types@npm:15.8.1"
   dependencies:
@@ -7760,6 +7786,26 @@ __metadata:
   languageName: node
   linkType: hard
 
+"react-native-calendars@npm:^1.1313.0":
+  version: 1.1313.0
+  resolution: "react-native-calendars@npm:1.1313.0"
+  dependencies:
+    hoist-non-react-statics: "npm:^3.3.1"
+    lodash: "npm:^4.17.15"
+    memoize-one: "npm:^5.2.1"
+    moment: "npm:^2.29.4"
+    prop-types: "npm:^15.5.10"
+    react-native-safe-area-context: "npm:4.5.0"
+    react-native-swipe-gestures: "npm:^1.0.5"
+    recyclerlistview: "npm:^4.0.0"
+    xdate: "npm:^0.8.0"
+  dependenciesMeta:
+    moment:
+      optional: true
+  checksum: 10/b5e66144f044ea2a41bc0b3346d5390e20bcddeaed4a1f2c6f604f0e95b091ee6a6f49d10756348da2e052b71d666bf8ca7a2c8f436c21a2aa5968339d8c1447
+  languageName: node
+  linkType: hard
+
 "react-native-dotenv@npm:^3.4.11":
   version: 3.4.11
   resolution: "react-native-dotenv@npm:3.4.11"
@@ -7830,6 +7876,16 @@ __metadata:
   languageName: node
   linkType: hard
 
+"react-native-safe-area-context@npm:4.5.0":
+  version: 4.5.0
+  resolution: "react-native-safe-area-context@npm:4.5.0"
+  peerDependencies:
+    react: "*"
+    react-native: "*"
+  checksum: 10/97bc691afb1fa88f5e2fbca3634651a08cd761e797323a8d4a25db59f39eb1b85d1151505ad14e72b4d3d1cbc2d968f89e7a7bc6cf251a11554a7a4532dcf400
+  languageName: node
+  linkType: hard
+
 "react-native-safe-area-context@npm:^5.5.2":
   version: 5.6.2
   resolution: "react-native-safe-area-context@npm:5.6.2"
@@ -7850,6 +7906,13 @@ __metadata:
     react: "*"
     react-native: "*"
   checksum: 10/0ac8b0a65b65dde7aee0402542ae4760b15382bff1dcdc44b695e69535539a794f5b25e14a389511956f3a513d2b6f405d077aed956199f0b9f57d9fc63974ca
+  languageName: node
+  linkType: hard
+
+"react-native-swipe-gestures@npm:^1.0.5":
+  version: 1.0.5
+  resolution: "react-native-swipe-gestures@npm:1.0.5"
+  checksum: 10/d637bc40baa50fa0ce3b6cf2b494efeceaea03cc3875cb7cf7d76922914a21d5e6b098d4a084fb291ce61bfbb0a241c03cff24b15bebf0cfae1c146f4ad10d92
   languageName: node
   linkType: hard
 
@@ -7961,6 +8024,20 @@ __metadata:
     string_decoder: "npm:^1.1.1"
     util-deprecate: "npm:^1.0.1"
   checksum: 10/d9e3e53193adcdb79d8f10f2a1f6989bd4389f5936c6f8b870e77570853561c362bee69feca2bbb7b32368ce96a85504aa4cedf7cf80f36e6a9de30d64244048
+  languageName: node
+  linkType: hard
+
+"recyclerlistview@npm:^4.0.0":
+  version: 4.2.3
+  resolution: "recyclerlistview@npm:4.2.3"
+  dependencies:
+    lodash.debounce: "npm:4.0.8"
+    prop-types: "npm:15.8.1"
+    ts-object-utils: "npm:0.0.5"
+  peerDependencies:
+    react: ">= 15.2.1"
+    react-native: ">= 0.30.0"
+  checksum: 10/a759db18297cb2dde362c448763983d84130b25b2bead2db4da525c0b79ce67ae8a6433f83a6f6cd32c42bbe7d78bc29a4d5f8b59da6eda27a49968588d9433b
   languageName: node
   linkType: hard
 
@@ -8891,6 +8968,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"ts-object-utils@npm:0.0.5":
+  version: 0.0.5
+  resolution: "ts-object-utils@npm:0.0.5"
+  checksum: 10/83c48fbdaba392fb2c01cea53b267ed5538d2bb44fc6c3eecc10bcfabc1780bfa6ec8569b52bbf0140d9b521d9049d5f15884e12286918244d463d854dbc73cb
+  languageName: node
+  linkType: hard
+
 "type-check@npm:^0.4.0, type-check@npm:~0.4.0":
   version: 0.4.0
   resolution: "type-check@npm:0.4.0"
@@ -9208,6 +9292,7 @@ __metadata:
     "@react-native-community/cli": "npm:20.0.0"
     "@react-native-community/cli-platform-android": "npm:20.0.0"
     "@react-native-community/cli-platform-ios": "npm:20.0.0"
+    "@react-native-community/datetimepicker": "npm:^8.5.1"
     "@react-native-google-signin/google-signin": "npm:^16.1.1"
     "@react-native/babel-preset": "npm:0.83.1"
     "@react-native/eslint-config": "npm:0.83.1"
@@ -9226,6 +9311,7 @@ __metadata:
     prettier: "npm:2.8.8"
     react: "npm:19.2.0"
     react-native: "npm:0.83.1"
+    react-native-calendars: "npm:^1.1313.0"
     react-native-dotenv: "npm:^3.4.11"
     react-native-gesture-handler: "npm:^2.30.0"
     react-native-mmkv: "npm:^4.1.0"
@@ -9403,6 +9489,13 @@ __metadata:
     utf-8-validate:
       optional: true
   checksum: 10/9c796b84ba80ffc2c2adcdfc9c8e9a219ba99caa435c9a8d45f9ac593bba325563b3f83edc5eb067cc6d21b9a6bf2c930adf76dd40af5f58a5ca6859e81858f0
+  languageName: node
+  linkType: hard
+
+"xdate@npm:^0.8.0":
+  version: 0.8.3
+  resolution: "xdate@npm:0.8.3"
+  checksum: 10/904f1c69903c6b682c3a146eaa7f13850c57725582b4bc2a5cace2ac94b99c5b53e3c71093d54e7a33296c3d8eb4e9d88549772a8480038266d0f04b671e9d73
   languageName: node
   linkType: hard
 

@@ -57,12 +57,6 @@ export const HomeScreen: React.FC = () => {
     setIsWorkoutFormVisible(isVisible);
   }, []);
 
-  const handleBackPress = useCallback(() => {
-    if (isWorkoutFormVisible) {
-      setIsWorkoutFormVisible(false);
-    }
-  }, [isWorkoutFormVisible]);
-
   const getHeaderTitle = () => {
     if (activeTab === 'Workout' && isWorkoutFormVisible) {
       return 'Add Workout Plan';
@@ -106,6 +100,15 @@ export const HomeScreen: React.FC = () => {
       );
     }
   }, [tabWidth, screenWidth, minTranslateX, translateX, indicatorX, activeIndex]);
+
+  const handleBackPress = useCallback(() => {
+    if (activeTab === 'Availability') {
+      // Go back to first tab (Workout)
+      handleTabChange('Workout', 0);
+    } else if (isWorkoutFormVisible) {
+      setIsWorkoutFormVisible(false);
+    }
+  }, [isWorkoutFormVisible, activeTab, handleTabChange]);
 
   const panGesture = Gesture.Pan()
     .onStart(() => {
@@ -170,13 +173,23 @@ export const HomeScreen: React.FC = () => {
       {/* Header - extends to top edge with safe area padding */}
       <View style={[styles.headerWrapper, {paddingTop: insets.top}]}>
         <View style={styles.header}>
-          <TouchableOpacity style={styles.menuButton}>
-            <Image
-              source={menuIcon}
-              style={styles.menuIcon}
-              resizeMode="contain"
-            />
-          </TouchableOpacity>
+          {activeTab === 'Availability' ? (
+            <TouchableOpacity style={styles.menuButton} onPress={handleBackPress}>
+              <Image
+                source={arrowBackIcon}
+                style={styles.menuIcon}
+                resizeMode="contain"
+              />
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity style={styles.menuButton}>
+              <Image
+                source={menuIcon}
+                style={styles.menuIcon}
+                resizeMode="contain"
+              />
+            </TouchableOpacity>
+          )}
 
           <Text style={styles.headerTitle}>{getHeaderTitle()}</Text>
 
@@ -188,13 +201,15 @@ export const HomeScreen: React.FC = () => {
                 resizeMode="contain"
               />
             </TouchableOpacity>
-            <TouchableOpacity style={styles.backButton} onPress={handleBackPress}>
-              <Image
-                source={arrowBackIcon}
-                style={styles.backIcon}
-                resizeMode="contain"
-              />
-            </TouchableOpacity>
+            {activeTab !== 'Availability' && (
+              <TouchableOpacity style={styles.backButton} onPress={handleBackPress}>
+                <Image
+                  source={arrowBackIcon}
+                  style={styles.backIcon}
+                  resizeMode="contain"
+                />
+              </TouchableOpacity>
+            )}
           </View>
         </View>
       </View>

@@ -8,6 +8,8 @@ import {
   ScrollView,
   Image,
   useWindowDimensions,
+  ActivityIndicator,
+  Alert,
 } from 'react-native';
 import Animated, {
   useSharedValue,
@@ -17,19 +19,17 @@ import Animated, {
   interpolate,
   Extrapolation,
   Easing,
-  runOnJS,
 } from 'react-native-reanimated';
 import {COLORS} from '../../../constants/colors';
+import {
+  workoutService,
+  WorkoutPlanListItem,
+} from '../../../services/workout/workoutService';
+import {useAuth} from '../../../context/AuthContext';
 
 // Icons
 import chevronDownIcon from '../../../assets/icons/chevron-down.png';
 import trashIcon from '../../../assets/icons/trash.png';
-
-interface WorkoutPlan {
-  id: string;
-  name: string;
-  days: number;
-}
 
 interface Exercise {
   id: string;
@@ -60,6 +60,13 @@ const TIMING_CONFIG = {
 const ITEM_HEIGHT = 72;
 const MAX_VISIBLE_ITEMS = 7;
 const MAX_ACCORDION_HEIGHT = ITEM_HEIGHT * MAX_VISIBLE_ITEMS;
+const MAX_NOTES_WORDS = 45;
+
+const countWords = (text: string): number => {
+  const trimmed = text.trim();
+  if (!trimmed) return 0;
+  return trimmed.split(/\s+/).length;
+};
 
 interface WorkoutTabProps {
   onFormVisibilityChange?: (isVisible: boolean) => void;
@@ -72,12 +79,35 @@ export const WorkoutTab: React.FC<WorkoutTabProps> = ({
   isFormVisible,
 }) => {
   const {width: screenWidth} = useWindowDimensions();
-  const [workoutPlans, setWorkoutPlans] = useState<WorkoutPlan[]>([]);
+  const {isAuthenticated} = useAuth();
+  const [workoutPlans, setWorkoutPlans] = useState<WorkoutPlanListItem[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [isAccordionOpen, setIsAccordionOpen] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
   const [workoutName, setWorkoutName] = useState('');
   const [days, setDays] = useState<Day[]>([]);
   const [notes, setNotes] = useState('');
+
+  // Fetch workout plans on mount
+  const fetchWorkoutPlans = useCallback(async () => {
+    if (!isAuthenticated) {
+      return;
+    }
+    try {
+      setIsLoading(true);
+      const response = await workoutService.getWorkoutPlans();
+      setWorkoutPlans(response.workoutPlans);
+    } catch (error) {
+      console.error('Failed to fetch workout plans:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [isAuthenticated]);
+
+  useEffect(() => {
+    fetchWorkoutPlans();
+  }, [fetchWorkoutPlans]);
 
   // Animation values
   const progress = useSharedValue(0);
@@ -202,9 +232,15 @@ export const WorkoutTab: React.FC<WorkoutTabProps> = ({
     };
   });
 
-  const handleDeletePlan = (id: string) => {
-    const newPlans = workoutPlans.filter(plan => plan.id !== id);
-    setWorkoutPlans(newPlans);
+  const handleDeletePlan = async (id: string) => {
+    try {
+      await workoutService.deleteWorkoutPlan(id);
+      const newPlans = workoutPlans.filter(plan => plan.id !== id);
+      setWorkoutPlans(newPlans);
+    } catch (error) {
+      console.error('Failed to delete workout plan:', error);
+      Alert.alert('Error', 'Failed to delete workout plan');
+    }
   };
 
   const handleAddDay = () => {
@@ -217,19 +253,63 @@ export const WorkoutTab: React.FC<WorkoutTabProps> = ({
     setDays([...days, newDay]);
   };
 
-  const handleSubmit = () => {
-    if (workoutName.trim()) {
-      const newPlan: WorkoutPlan = {
-        id: Date.now().toString(),
-        name: workoutName,
-        days: days.length,
-      };
-      setWorkoutPlans([...workoutPlans, newPlan]);
+  const handleSubmit = async () => {
+    if (!workoutName.trim()) {
+      Alert.alert('Error', 'Please enter a workout name');
+      return;
+    }
+
+    // Filter out days with empty body parts
+    const validDays = days.filter(day => day.bodyPart.trim() !== '');
+
+    if (validDays.length === 0) {
+      Alert.alert('Error', 'Please add at least one day with a body part');
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      const response = await workoutService.createWorkoutPlan({
+        name: workoutName.trim(),
+        days: validDays.map((day, index) => ({
+          dayNumber: index + 1,
+          bodyPart: day.bodyPart.trim(),
+          exercises: day.exercises
+            .filter(ex => ex.name.trim() !== '')
+            .map(ex => ({
+              name: ex.name.trim(),
+              sets: ex.sets.trim(),
+              reps: ex.reps.trim(),
+            })),
+        })),
+        notes: notes.trim(),
+      });
+
+      // Add the new plan to the list
+      setWorkoutPlans(prev => [
+        {
+          id: response.id,
+          name: response.name,
+          totalDays: response.days.length,
+          totalExercises: response.days.reduce(
+            (acc, day) => acc + day.exercises.length,
+            0,
+          ),
+          createdAt: response.createdAt,
+        },
+        ...prev,
+      ]);
+
       closeAddForm();
+    } catch (error) {
+      console.error('Failed to create workout plan:', error);
+      Alert.alert('Error', 'Failed to create workout plan');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
-  const renderWorkoutPlan = (item: WorkoutPlan) => (
+  const renderWorkoutPlan = (item: WorkoutPlanListItem) => (
     <View key={item.id} style={styles.planItem}>
       <Text style={styles.planName}>{item.name}</Text>
       <TouchableOpacity
@@ -266,12 +346,18 @@ export const WorkoutTab: React.FC<WorkoutTabProps> = ({
           {/* Accordion Content */}
           <Animated.View
             style={[styles.accordionContent, animatedAccordionStyle]}>
-            <ScrollView
-              nestedScrollEnabled
-              showsVerticalScrollIndicator={false}
-              bounces={false}>
-              {workoutPlans.map(renderWorkoutPlan)}
-            </ScrollView>
+            {isLoading ? (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator color={COLORS.primary} />
+              </View>
+            ) : (
+              <ScrollView
+                nestedScrollEnabled
+                showsVerticalScrollIndicator={false}
+                bounces={false}>
+                {workoutPlans.map(renderWorkoutPlan)}
+              </ScrollView>
+            )}
           </Animated.View>
 
           {/* Add Button */}
@@ -439,11 +525,20 @@ export const WorkoutTab: React.FC<WorkoutTabProps> = ({
               multiline
               numberOfLines={4}
             />
-            <Text style={styles.wordsRemaining}>45 words remaining</Text>
+            <Text style={styles.wordsRemaining}>
+              {Math.max(0, MAX_NOTES_WORDS - countWords(notes))} words remaining
+            </Text>
 
             {/* Submit Button */}
-            <TouchableOpacity style={styles.submitButton} onPress={handleSubmit}>
-              <Text style={styles.submitButtonText}>Submit</Text>
+            <TouchableOpacity
+              style={[styles.submitButton, isSubmitting && styles.submitButtonDisabled]}
+              onPress={handleSubmit}
+              disabled={isSubmitting}>
+              {isSubmitting ? (
+                <ActivityIndicator color={COLORS.white} />
+              ) : (
+                <Text style={styles.submitButtonText}>Submit</Text>
+              )}
             </TouchableOpacity>
           </ScrollView>
         </Animated.View>
@@ -494,6 +589,12 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     marginTop: 16,
     alignSelf: 'stretch',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 20,
   },
   planItem: {
     flexDirection: 'row',
@@ -742,6 +843,9 @@ const styles = StyleSheet.create({
     padding: 16,
     alignItems: 'center',
     marginBottom: 32,
+  },
+  submitButtonDisabled: {
+    opacity: 0.7,
   },
   submitButtonText: {
     fontSize: 16,
