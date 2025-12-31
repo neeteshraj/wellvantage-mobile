@@ -25,9 +25,9 @@ type NestedKeyOf<T> = T extends object
     }[keyof T]
   : never;
 
-type TranslationKeys = NestedKeyOf<typeof en>;
+export type TranslationKeys = NestedKeyOf<typeof en>;
 
-export const t = (key: string): string => {
+export const t = (key: TranslationKeys | string): string => {
   const keys = key.split('.');
   let value: unknown = translations[currentLanguage];
 

@@ -1,337 +1,567 @@
-import React, {useState} from 'react';
+import React, {useState, useCallback} from 'react';
 import {
   StyleSheet,
   Text,
   View,
   TouchableOpacity,
-  FlatList,
-  TextInput,
-  Modal,
+  ScrollView,
+  Image,
 } from 'react-native';
 import {COLORS} from '../../../constants/colors';
-import {Avatar} from '../../../components/common/Avatar';
+import {t} from '../../../i18n';
 
-interface Client {
+// Icons
+import userIcon from '../../../assets/icons/user.png';
+import whatsappIcon from '../../../assets/icons/whatsapp.png';
+import editIcon from '../../../assets/icons/edit.png';
+
+interface AssignedClient {
   id: string;
   name: string;
-  email: string;
-  phone: string;
-  joinDate: string;
+  workoutAssigned: string;
+  ptPlanName: string;
+  sessionsTotal: number;
+  sessionsRemaining: number;
+  nextSessionDate: string;
 }
 
-const MOCK_CLIENTS: Client[] = [
+interface Session {
+  id: string;
+  date: string;
+  time: string;
+  customer: string;
+  isUpcoming: boolean;
+}
+
+const MOCK_CLIENTS: AssignedClient[] = [
   {
     id: '1',
-    name: 'John Doe',
-    email: 'john@example.com',
-    phone: '+1 234 567 8900',
-    joinDate: '2024-01-15',
+    name: 'Deepak Singh',
+    workoutAssigned: "Beginner's 3 day",
+    ptPlanName: '24 Sessions',
+    sessionsTotal: 24,
+    sessionsRemaining: 12,
+    nextSessionDate: '24 August 2025',
   },
   {
     id: '2',
-    name: 'Jane Smith',
-    email: 'jane@example.com',
-    phone: '+1 234 567 8901',
-    joinDate: '2024-02-20',
+    name: 'Deepak Singh',
+    workoutAssigned: "Beginner's 3 day",
+    ptPlanName: '24 Sessions',
+    sessionsTotal: 24,
+    sessionsRemaining: 12,
+    nextSessionDate: '24 August 2025',
   },
   {
     id: '3',
-    name: 'Mike Johnson',
-    email: 'mike@example.com',
-    phone: '+1 234 567 8902',
-    joinDate: '2024-03-10',
+    name: 'Deepak Singh',
+    workoutAssigned: "Beginner's 3 day",
+    ptPlanName: '24 Sessions',
+    sessionsTotal: 24,
+    sessionsRemaining: 12,
+    nextSessionDate: '24 August 2025',
   },
 ];
 
-export const ClientTab: React.FC = () => {
-  const [clients, setClients] = useState<Client[]>(MOCK_CLIENTS);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [isModalVisible, setIsModalVisible] = useState(false);
-  const [newClient, setNewClient] = useState({
-    name: '',
-    email: '',
-    phone: '',
-  });
+const MOCK_UPCOMING_SESSIONS: Session[] = [
+  {
+    id: '1',
+    date: '20 Apr 2025',
+    time: '11:00 AM - 12 pm',
+    customer: 'Rahul Sharma',
+    isUpcoming: true,
+  },
+  {
+    id: '2',
+    date: '23 Apr 2025',
+    time: '12:30 AM - 1:30 AM',
+    customer: 'Rahul Sharma',
+    isUpcoming: true,
+  },
+];
 
-  const filteredClients = clients.filter(
-    client =>
-      client.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      client.email.toLowerCase().includes(searchQuery.toLowerCase()),
+const MOCK_PAST_SESSIONS: Session[] = [
+  {
+    id: '1',
+    date: '20 Apr 2025',
+    time: '11:00 AM - 12:00 pm',
+    customer: 'Rahul Sharma',
+    isUpcoming: false,
+  },
+  {
+    id: '2',
+    date: '23 Apr 2025',
+    time: '12:30 AM - 1:30 AM',
+    customer: 'Rahul Sharma',
+    isUpcoming: false,
+  },
+];
+
+const ITEMS_PER_PAGE = 3;
+
+export const ClientTab: React.FC = () => {
+  const [clients] = useState<AssignedClient[]>(MOCK_CLIENTS);
+  const [upcomingSessions] = useState<Session[]>(MOCK_UPCOMING_SESSIONS);
+  const [pastSessions] = useState<Session[]>(MOCK_PAST_SESSIONS);
+  const [clientsPage, setClientsPage] = useState(1);
+  const [pastSessionsPage, setPastSessionsPage] = useState(1);
+
+  const totalClientsPages = Math.ceil(clients.length / ITEMS_PER_PAGE);
+  const totalPastSessionsPages = Math.ceil(pastSessions.length / ITEMS_PER_PAGE);
+
+  const paginatedClients = clients.slice(
+    (clientsPage - 1) * ITEMS_PER_PAGE,
+    clientsPage * ITEMS_PER_PAGE,
   );
 
-  const handleAddClient = () => {
-    if (newClient.name.trim() && newClient.email.trim()) {
-      const client: Client = {
-        id: Date.now().toString(),
-        name: newClient.name,
-        email: newClient.email,
-        phone: newClient.phone,
-        joinDate: new Date().toISOString().split('T')[0],
-      };
-      setClients([...clients, client]);
-      setNewClient({name: '', email: '', phone: ''});
-      setIsModalVisible(false);
-    }
-  };
+  const paginatedPastSessions = pastSessions.slice(
+    (pastSessionsPage - 1) * ITEMS_PER_PAGE,
+    pastSessionsPage * ITEMS_PER_PAGE,
+  );
 
-  const handleDeleteClient = (id: string) => {
-    setClients(clients.filter(client => client.id !== id));
-  };
+  const handleWhatsApp = useCallback((_clientId: string) => {
+    // Handle WhatsApp action
+    console.log('Opening WhatsApp for client:', _clientId);
+  }, []);
 
-  const renderClient = ({item}: {item: Client}) => (
-    <View style={styles.clientCard}>
-      <Avatar name={item.name} size={48} style={styles.clientAvatar} />
-      <View style={styles.clientInfo}>
-        <Text style={styles.clientName}>{item.name}</Text>
-        <Text style={styles.clientEmail}>{item.email}</Text>
-        <Text style={styles.clientPhone}>{item.phone}</Text>
+  const handleEdit = useCallback((_clientId: string) => {
+    // Handle edit action
+    console.log('Editing client:', _clientId);
+  }, []);
+
+  const handleCancelSession = useCallback((_sessionId: string) => {
+    // Handle cancel session
+    console.log('Cancelling session:', _sessionId);
+  }, []);
+
+  const renderPagination = (
+    currentPage: number,
+    totalPages: number,
+    onPageChange: (page: number) => void,
+    totalItems: number,
+  ) => {
+    const startItem = (currentPage - 1) * ITEMS_PER_PAGE + 1;
+    const endItem = Math.min(currentPage * ITEMS_PER_PAGE, totalItems);
+
+    return (
+      <View style={styles.paginationContainer}>
+        <Text style={styles.paginationText}>
+          Showing {startItem} to {endItem} of {totalItems} entries
+        </Text>
+        <View style={styles.paginationButtons}>
+          <TouchableOpacity
+            style={styles.paginationArrow}
+            onPress={() => onPageChange(Math.max(1, currentPage - 1))}
+            disabled={currentPage === 1}>
+            <Text style={[styles.paginationArrowText, currentPage === 1 && styles.paginationDisabled]}>
+              {'<'}
+            </Text>
+          </TouchableOpacity>
+          {Array.from({length: Math.min(totalPages, 3)}, (_, i) => i + 1).map(page => (
+            <TouchableOpacity
+              key={page}
+              style={[
+                styles.paginationNumber,
+                currentPage === page && styles.paginationNumberActive,
+              ]}
+              onPress={() => onPageChange(page)}>
+              <Text
+                style={[
+                  styles.paginationNumberText,
+                  currentPage === page && styles.paginationNumberTextActive,
+                ]}>
+                {page}
+              </Text>
+            </TouchableOpacity>
+          ))}
+          {totalPages > 3 && (
+            <>
+              <Text style={styles.paginationDots}>.....</Text>
+              <TouchableOpacity
+                style={styles.paginationNumber}
+                onPress={() => onPageChange(totalPages)}>
+                <Text style={styles.paginationNumberText}>{totalPages}</Text>
+              </TouchableOpacity>
+            </>
+          )}
+          <TouchableOpacity
+            style={styles.paginationArrow}
+            onPress={() => onPageChange(Math.min(totalPages, currentPage + 1))}
+            disabled={currentPage === totalPages}>
+            <Text style={[styles.paginationArrowText, currentPage === totalPages && styles.paginationDisabled]}>
+              {'>'}
+            </Text>
+          </TouchableOpacity>
+        </View>
       </View>
-      <TouchableOpacity
-        style={styles.deleteButton}
-        onPress={() => handleDeleteClient(item.id)}>
-        <Text style={styles.deleteIcon}>🗑</Text>
-      </TouchableOpacity>
+    );
+  };
+
+  const renderClientCard = (client: AssignedClient) => (
+    <View key={client.id} style={styles.clientCard}>
+      <View style={styles.clientCardContent}>
+        {/* Avatar on far left */}
+        <View style={styles.avatarContainer}>
+          <Image source={userIcon} style={styles.userIcon} resizeMode="contain" />
+        </View>
+
+        {/* Two columns of details */}
+        <View style={styles.detailsContainer}>
+          {/* Left Column: Name, PT Plan, Next Session */}
+          <View style={styles.leftColumn}>
+            <View style={styles.clientRow}>
+              <Text style={styles.clientLabel}>{t('client.name')}</Text>
+              <Text style={styles.clientValue}>{client.name}</Text>
+            </View>
+            <View style={styles.clientRow}>
+              <Text style={styles.clientLabel}>{t('client.ptPlanName')}</Text>
+              <Text style={styles.clientValue}>{client.ptPlanName}</Text>
+            </View>
+            <View style={styles.clientRow}>
+              <Text style={styles.clientLabel}>{t('client.nextSessionDate')}</Text>
+              <Text style={styles.clientValue}>{client.nextSessionDate}</Text>
+            </View>
+          </View>
+
+          {/* Right Column: Workout Assigned, Sessions Remaining, WhatsApp */}
+          <View style={styles.rightColumn}>
+            <View style={styles.clientRow}>
+              <Text style={styles.clientLabel}>{t('client.workoutAssigned')}</Text>
+              <View style={styles.workoutAssignedRow}>
+                <Text style={styles.clientValueLink}>{client.workoutAssigned}</Text>
+                <TouchableOpacity onPress={() => handleEdit(client.id)}>
+                  <Image source={editIcon} style={styles.editIcon} resizeMode="contain" />
+                </TouchableOpacity>
+              </View>
+            </View>
+            <View style={styles.clientRow}>
+              <Text style={styles.clientLabel}>{t('client.sessionsRemaining')}</Text>
+              <Text style={styles.clientValue}>{client.sessionsRemaining}</Text>
+            </View>
+            <TouchableOpacity
+              style={styles.whatsappButton}
+              onPress={() => handleWhatsApp(client.id)}>
+              <Image source={whatsappIcon} style={styles.whatsappIcon} resizeMode="contain" />
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
     </View>
   );
 
   return (
-    <View style={styles.container}>
-      {/* Search Bar */}
-      <View style={styles.searchContainer}>
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Search clients..."
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-        />
+    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+      {/* Assigned Clients Section */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>{t('client.assignedClients')}</Text>
+        {paginatedClients.length === 0 ? (
+          <Text style={styles.emptyText}>{t('client.noClients')}</Text>
+        ) : (
+          paginatedClients.map(renderClientCard)
+        )}
+        {clients.length > ITEMS_PER_PAGE &&
+          renderPagination(clientsPage, totalClientsPages, setClientsPage, clients.length)}
       </View>
 
-      {/* Clients List */}
-      <FlatList
-        data={filteredClients}
-        renderItem={renderClient}
-        keyExtractor={item => item.id}
-        contentContainerStyle={styles.listContent}
-        ListEmptyComponent={
-          <View style={styles.emptyContainer}>
-            <Text style={styles.emptyText}>No clients found</Text>
+      {/* Upcoming Sessions Section */}
+      <View style={styles.section}>
+        <View style={styles.sessionsTable}>
+          <View style={styles.sessionsTitleContainer}>
+            <Text style={styles.sessionsTableTitle}>{t('client.upcomingSessions')}</Text>
           </View>
-        }
-      />
-
-      {/* Add Button */}
-      <TouchableOpacity
-        style={styles.addButton}
-        onPress={() => setIsModalVisible(true)}>
-        <Text style={styles.addButtonText}>+</Text>
-      </TouchableOpacity>
-
-      {/* Add Client Modal */}
-      <Modal
-        visible={isModalVisible}
-        animationType="slide"
-        transparent={true}
-        onRequestClose={() => setIsModalVisible(false)}>
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Add New Client</Text>
-              <TouchableOpacity
-                style={styles.closeButton}
-                onPress={() => setIsModalVisible(false)}>
-                <Text style={styles.closeIcon}>✕</Text>
-              </TouchableOpacity>
-            </View>
-
-            <View style={styles.modalBody}>
-              <Text style={styles.inputLabel}>Name</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Enter client name"
-                value={newClient.name}
-                onChangeText={text => setNewClient({...newClient, name: text})}
-              />
-
-              <Text style={styles.inputLabel}>Email</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Enter client email"
-                value={newClient.email}
-                onChangeText={text => setNewClient({...newClient, email: text})}
-                keyboardType="email-address"
-                autoCapitalize="none"
-              />
-
-              <Text style={styles.inputLabel}>Phone</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Enter phone number"
-                value={newClient.phone}
-                onChangeText={text => setNewClient({...newClient, phone: text})}
-                keyboardType="phone-pad"
-              />
-
-              <TouchableOpacity
-                style={styles.submitButton}
-                onPress={handleAddClient}>
-                <Text style={styles.submitButtonText}>Add Client</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
+          <View style={styles.tableDivider} />
+          {upcomingSessions.length === 0 ? (
+            <Text style={styles.emptyTextInCard}>{t('client.noUpcomingSessions')}</Text>
+          ) : (
+            <>
+              <View style={styles.tableHeader}>
+                <Text style={[styles.tableHeaderText, styles.dateColumn]}>{t('client.date')}</Text>
+                <Text style={[styles.tableHeaderText, styles.timeColumn]}>{t('client.time')}</Text>
+                <Text style={[styles.tableHeaderText, styles.customerColumn]}>{t('client.customer')}</Text>
+                <Text style={[styles.tableHeaderText, styles.actionColumn]}>{t('client.action')}</Text>
+              </View>
+              {upcomingSessions.map(session => (
+                <View key={session.id} style={styles.tableRow}>
+                  <Text style={[styles.tableCell, styles.dateColumn]}>{session.date}</Text>
+                  <Text style={[styles.tableCell, styles.timeColumn]}>{session.time}</Text>
+                  <Text style={[styles.tableCell, styles.customerColumn]}>{session.customer}</Text>
+                  <View style={styles.actionColumn}>
+                    <TouchableOpacity
+                      style={styles.cancelButton}
+                      onPress={() => handleCancelSession(session.id)}>
+                      <Text style={styles.cancelButtonText}>{t('common.cancel')}</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              ))}
+            </>
+          )}
         </View>
-      </Modal>
-    </View>
+      </View>
+
+      {/* Past Sessions Section */}
+      <View style={styles.section}>
+        <View style={styles.sessionsTable}>
+          <View style={styles.sessionsTitleContainer}>
+            <Text style={styles.sessionsTableTitle}>{t('client.pastSessions')}</Text>
+          </View>
+          <View style={styles.tableDivider} />
+          {pastSessions.length === 0 ? (
+            <Text style={styles.emptyTextInCard}>{t('client.noPastSessions')}</Text>
+          ) : (
+            <>
+              <View style={styles.tableHeader}>
+                <Text style={[styles.tableHeaderText, styles.dateColumn]}>{t('client.date')}</Text>
+                <Text style={[styles.tableHeaderText, styles.timeColumnWide]}>{t('client.time')}</Text>
+                <Text style={[styles.tableHeaderText, styles.customerColumn]}>{t('client.customer')}</Text>
+              </View>
+              {paginatedPastSessions.map(session => (
+                <View key={session.id} style={styles.tableRow}>
+                  <Text style={[styles.tableCell, styles.dateColumn]}>{session.date}</Text>
+                  <Text style={[styles.tableCell, styles.timeColumnWide]}>{session.time}</Text>
+                  <Text style={[styles.tableCell, styles.customerColumn]}>{session.customer}</Text>
+                </View>
+              ))}
+            </>
+          )}
+        </View>
+        {pastSessions.length > ITEMS_PER_PAGE &&
+          renderPagination(
+            pastSessionsPage,
+            totalPastSessionsPages,
+            setPastSessionsPage,
+            pastSessions.length,
+          )}
+      </View>
+    </ScrollView>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.gray[50],
-  },
-  searchContainer: {
-    padding: 16,
-  },
-  searchInput: {
     backgroundColor: COLORS.white,
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 14,
-    borderWidth: 1,
-    borderColor: COLORS.border.light,
   },
-  listContent: {
+  section: {
     paddingHorizontal: 16,
-    paddingBottom: 80,
+    paddingVertical: 16,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontFamily: 'Poppins-SemiBold',
+    color: COLORS.text.light.primary,
+    marginBottom: 16,
+    textAlign: 'center',
   },
   clientCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: COLORS.white,
-    padding: 16,
-    marginBottom: 8,
-    borderRadius: 8,
+    backgroundColor: COLORS.surface.light,
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 10,
     borderWidth: 1,
     borderColor: COLORS.border.light,
-  },
-  clientAvatar: {
-    marginRight: 12,
-  },
-  clientInfo: {
-    flex: 1,
-  },
-  clientName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: COLORS.text.light.primary,
-    marginBottom: 2,
-  },
-  clientEmail: {
-    fontSize: 14,
-    color: COLORS.text.light.secondary,
-    marginBottom: 2,
-  },
-  clientPhone: {
-    fontSize: 14,
-    color: COLORS.text.light.secondary,
-  },
-  deleteButton: {
-    padding: 8,
-  },
-  deleteIcon: {
-    fontSize: 18,
-    color: COLORS.error,
-  },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingVertical: 40,
-  },
-  emptyText: {
-    fontSize: 16,
-    color: COLORS.text.light.secondary,
-  },
-  addButton: {
-    position: 'absolute',
-    bottom: 24,
-    alignSelf: 'center',
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: COLORS.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-    elevation: 4,
+    elevation: 2,
     shadowColor: COLORS.black,
-    shadowOffset: {width: 0, height: 2},
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
+    shadowOffset: {width: 0, height: 1},
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
   },
-  addButtonText: {
-    fontSize: 28,
-    color: COLORS.white,
-    lineHeight: 32,
+  clientCardContent: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
   },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  avatarContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: COLORS.gray[500],
     justifyContent: 'center',
     alignItems: 'center',
+    marginRight: 8,
   },
-  modalContent: {
-    width: '90%',
-    backgroundColor: COLORS.white,
-    borderRadius: 12,
-    overflow: 'hidden',
+  userIcon: {
+    width: 24,
+    height: 24,
+    tintColor: COLORS.white,
   },
-  modalHeader: {
+  detailsContainer: {
+    flex: 1,
+    flexDirection: 'row',
+  },
+  leftColumn: {
+    flex: 1,
+    marginRight: 8,
+  },
+  rightColumn: {
+    flex: 1,
+  },
+  clientRow: {
+    marginBottom: 2,
+  },
+  clientLabel: {
+    fontSize: 11,
+    fontFamily: 'Poppins-SemiBold',
+    color: COLORS.text.light.primary,
+  },
+  clientValue: {
+    fontSize: 12,
+    fontFamily: 'Poppins-Regular',
+    color: COLORS.text.light.secondary,
+  },
+  clientValueLink: {
+    fontSize: 12,
+    fontFamily: 'Poppins-Regular',
+    color: COLORS.primary,
+  },
+  workoutAssignedRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: COLORS.primary,
-    padding: 16,
+    gap: 2,
   },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: COLORS.white,
+  editIcon: {
+    width: 12,
+    height: 12,
+    tintColor: COLORS.primary,
   },
-  closeButton: {
-    position: 'absolute',
-    right: 16,
-    padding: 4,
+  whatsappButton: {
+    marginTop: 2,
   },
-  closeIcon: {
-    fontSize: 18,
-    color: COLORS.white,
+  whatsappIcon: {
+    width: 20,
+    height: 20,
   },
-  modalBody: {
-    padding: 16,
-  },
-  inputLabel: {
+  emptyText: {
     fontSize: 14,
-    fontWeight: '500',
-    color: COLORS.text.light.primary,
+    fontFamily: 'Poppins-Regular',
+    color: COLORS.text.light.secondary,
+    textAlign: 'center',
+    paddingVertical: 20,
+  },
+  paginationContainer: {
+    marginTop: 16,
+    alignItems: 'center',
+  },
+  paginationText: {
+    fontSize: 12,
+    fontFamily: 'Poppins-Regular',
+    color: COLORS.text.light.secondary,
     marginBottom: 8,
   },
-  input: {
-    backgroundColor: COLORS.gray[100],
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 14,
-    marginBottom: 16,
-  },
-  submitButton: {
-    backgroundColor: COLORS.primary,
-    borderRadius: 8,
-    padding: 16,
+  paginationButtons: {
+    flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 8,
+    gap: 8,
   },
-  submitButtonText: {
+  paginationArrow: {
+    padding: 8,
+  },
+  paginationArrowText: {
+    fontSize: 14,
+    fontFamily: 'Poppins-Medium',
+    color: COLORS.text.light.primary,
+  },
+  paginationDisabled: {
+    color: COLORS.gray[300],
+  },
+  paginationNumber: {
+    width: 28,
+    height: 28,
+    borderRadius: 4,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  paginationNumberActive: {
+    backgroundColor: COLORS.primary,
+  },
+  paginationNumberText: {
+    fontSize: 13,
+    fontFamily: 'Poppins-Medium',
+    color: COLORS.text.light.primary,
+  },
+  paginationNumberTextActive: {
+    color: COLORS.white,
+  },
+  paginationDots: {
+    fontSize: 12,
+    color: COLORS.text.light.secondary,
+  },
+  sessionsTable: {
+    borderWidth: 1,
+    borderColor: COLORS.border.light,
+    borderRadius: 8,
+    overflow: 'hidden',
+    backgroundColor: COLORS.surface.light,
+  },
+  sessionsTitleContainer: {
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+  },
+  sessionsTableTitle: {
     fontSize: 16,
-    fontWeight: '600',
+    fontFamily: 'Poppins-SemiBold',
+    color: COLORS.text.light.primary,
+    textAlign: 'left',
+  },
+  tableDivider: {
+    height: 1,
+    backgroundColor: COLORS.gray[400],
+    marginHorizontal: 12,
+  },
+  emptyTextInCard: {
+    fontSize: 14,
+    fontFamily: 'Poppins-Regular',
+    color: COLORS.text.light.secondary,
+    textAlign: 'center',
+    paddingVertical: 20,
+    paddingHorizontal: 12,
+  },
+  tableHeader: {
+    flexDirection: 'row',
+    backgroundColor: COLORS.gray[50],
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+  },
+  tableHeaderText: {
+    fontSize: 12,
+    fontFamily: 'Poppins-SemiBold',
+    color: COLORS.text.light.primary,
+  },
+  tableRow: {
+    flexDirection: 'row',
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+    alignItems: 'center',
+  },
+  tableCell: {
+    fontSize: 12,
+    fontFamily: 'Poppins-Regular',
+    color: COLORS.text.light.primary,
+  },
+  dateColumn: {
+    flex: 1,
+  },
+  timeColumn: {
+    flex: 1.2,
+  },
+  timeColumnWide: {
+    flex: 1.5,
+  },
+  customerColumn: {
+    flex: 1.2,
+  },
+  actionColumn: {
+    flex: 0.8,
+    alignItems: 'center',
+  },
+  cancelButton: {
+    backgroundColor: COLORS.error,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 4,
+  },
+  cancelButtonText: {
+    fontSize: 11,
+    fontFamily: 'Poppins-Medium',
     color: COLORS.white,
   },
 });

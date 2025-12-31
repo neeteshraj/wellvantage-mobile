@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import {Calendar, DateData} from 'react-native-calendars';
 import {COLORS} from '../../../constants/colors';
+import {t} from '../../../i18n';
 import {Client, clientService} from '../../../services/client/clientService';
 import {
   availabilityService,
@@ -25,7 +26,7 @@ export const BookSlotsTab: React.FC = () => {
   const today = new Date().toISOString().split('T')[0];
   const [selectedDate, setSelectedDate] = useState<string>(today);
   const [availableSlots, setAvailableSlots] = useState<AvailabilityBlock[]>([]);
-  const [clients, setClients] = useState<Client[]>([]);
+  const [_clients, setClients] = useState<Client[]>([]);
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [isLoadingClients, setIsLoadingClients] = useState(true);
   const [isLoadingSlots, setIsLoadingSlots] = useState(false);
@@ -133,14 +134,14 @@ export const BookSlotsTab: React.FC = () => {
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       {/* Header Section */}
       <View style={styles.headerSection}>
-        <Text style={styles.title}>Book Client Slots</Text>
+        <Text style={styles.title}>{t('bookSlots.title')}</Text>
         {selectedClient ? (
           <Text style={styles.clientInfo}>
-            {selectedClient.name} has {selectedClient.sessionsRemaining} sessions left to book
-            by {formatExpiryDate(selectedClient.packageExpiryDate)}
+            {selectedClient.name} {t('bookSlots.sessionsLeft')} {selectedClient.sessionsRemaining} {t('bookSlots.sessionsToBook')}{' '}
+            {formatExpiryDate(selectedClient.packageExpiryDate)}
           </Text>
         ) : (
-          <Text style={styles.clientInfo}>No clients available</Text>
+          <Text style={styles.clientInfo}>{t('bookSlots.noClients')}</Text>
         )}
       </View>
 
@@ -175,14 +176,14 @@ export const BookSlotsTab: React.FC = () => {
 
       {/* Available Slots Section */}
       <View style={styles.slotsSection}>
-        <Text style={styles.slotsTitle}>Available Slots:</Text>
+        <Text style={styles.slotsTitle}>{t('bookSlots.availableSlots')}</Text>
 
         {isLoadingSlots ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator color={COLORS.primary} />
           </View>
         ) : availableSlots.length === 0 ? (
-          <Text style={styles.noSlotsText}>No available slots for this date</Text>
+          <Text style={styles.noSlotsText}>{t('bookSlots.noSlotsAvailable')}</Text>
         ) : (
           availableSlots.map(slot => (
             <View key={slot.id} style={styles.slotRow}>
@@ -195,7 +196,7 @@ export const BookSlotsTab: React.FC = () => {
               <TouchableOpacity
                 style={styles.openButton}
                 onPress={() => handleBookSlot(slot.id)}>
-                <Text style={styles.openButtonText}>Open</Text>
+                <Text style={styles.openButtonText}>{t('common.open')}</Text>
               </TouchableOpacity>
 
               <TouchableOpacity

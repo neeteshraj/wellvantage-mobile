@@ -21,6 +21,7 @@ import Animated, {
   Easing,
 } from 'react-native-reanimated';
 import {COLORS} from '../../../constants/colors';
+import {t} from '../../../i18n';
 import {
   workoutService,
   WorkoutPlanListItem,
@@ -239,7 +240,7 @@ export const WorkoutTab: React.FC<WorkoutTabProps> = ({
       setWorkoutPlans(newPlans);
     } catch (error) {
       console.error('Failed to delete workout plan:', error);
-      Alert.alert('Error', 'Failed to delete workout plan');
+      Alert.alert(t('common.error'), t('workout.deleteError'));
     }
   };
 
@@ -255,7 +256,7 @@ export const WorkoutTab: React.FC<WorkoutTabProps> = ({
 
   const handleSubmit = async () => {
     if (!workoutName.trim()) {
-      Alert.alert('Error', 'Please enter a workout name');
+      Alert.alert(t('common.error'), t('workout.workoutNameRequired'));
       return;
     }
 
@@ -263,7 +264,7 @@ export const WorkoutTab: React.FC<WorkoutTabProps> = ({
     const validDays = days.filter(day => day.bodyPart.trim() !== '');
 
     if (validDays.length === 0) {
-      Alert.alert('Error', 'Please add at least one day with a body part');
+      Alert.alert(t('common.error'), t('workout.dayRequired'));
       return;
     }
 
@@ -303,7 +304,7 @@ export const WorkoutTab: React.FC<WorkoutTabProps> = ({
       closeAddForm();
     } catch (error) {
       console.error('Failed to create workout plan:', error);
-      Alert.alert('Error', 'Failed to create workout plan');
+      Alert.alert(t('common.error'), t('workout.createError'));
     } finally {
       setIsSubmitting(false);
     }
@@ -333,7 +334,7 @@ export const WorkoutTab: React.FC<WorkoutTabProps> = ({
         <View style={styles.contentWrapper}>
           {/* Accordion Dropdown */}
           <TouchableOpacity style={styles.dropdown} onPress={toggleAccordion}>
-            <Text style={styles.dropdownText}>Custom Workout Plans</Text>
+            <Text style={styles.dropdownText}>{t('workout.customPlans')}</Text>
             <Animated.View style={animatedChevronStyle}>
               <Image
                 source={chevronDownIcon}
@@ -378,7 +379,7 @@ export const WorkoutTab: React.FC<WorkoutTabProps> = ({
             {/* Workout Name Input */}
             <TextInput
               style={styles.workoutNameInput}
-              placeholder="Beginner's Workout - 3 days"
+              placeholder={t('workout.workoutNamePlaceholder')}
               placeholderTextColor={COLORS.text.light.secondary}
               value={workoutName}
               onChangeText={setWorkoutName}
@@ -391,7 +392,7 @@ export const WorkoutTab: React.FC<WorkoutTabProps> = ({
                 <View style={styles.dayRow}>
                   <View style={styles.dayTabActive}>
                     <Text style={styles.dayTabActiveText}>
-                      Day {day.dayNumber}
+                      {t('workout.day')} {day.dayNumber}
                     </Text>
                   </View>
                   <TextInput
@@ -402,7 +403,7 @@ export const WorkoutTab: React.FC<WorkoutTabProps> = ({
                       updatedDays[dayIndex].bodyPart = text;
                       setDays(updatedDays);
                     }}
-                    placeholder="Body Part"
+                    placeholder={t('workout.bodyPartPlaceholder')}
                     placeholderTextColor={COLORS.text.light.secondary}
                   />
                   <TouchableOpacity
@@ -436,8 +437,8 @@ export const WorkoutTab: React.FC<WorkoutTabProps> = ({
               <>
                 {/* Exercises Header */}
                 <View style={styles.exercisesHeader}>
-                  <Text style={styles.exercisesHeaderText}>Sets</Text>
-                  <Text style={styles.exercisesHeaderText}>Reps</Text>
+                  <Text style={styles.exercisesHeaderText}>{t('workout.sets')}</Text>
+                  <Text style={styles.exercisesHeaderText}>{t('workout.reps')}</Text>
                 </View>
 
                 {/* Exercises List - for the first day (or selected day) */}
@@ -451,7 +452,7 @@ export const WorkoutTab: React.FC<WorkoutTabProps> = ({
                         updatedDays[0].exercises[exerciseIndex].name = text;
                         setDays(updatedDays);
                       }}
-                      placeholder={`Exercise ${exerciseIndex + 1}`}
+                      placeholder={`${t('workout.exercise')} ${exerciseIndex + 1}`}
                       placeholderTextColor={COLORS.text.light.secondary}
                     />
                     <View style={styles.exerciseInputs}>
@@ -463,7 +464,7 @@ export const WorkoutTab: React.FC<WorkoutTabProps> = ({
                           updatedDays[0].exercises[exerciseIndex].sets = text;
                           setDays(updatedDays);
                         }}
-                        placeholder="Sets"
+                        placeholder={t('workout.sets')}
                         placeholderTextColor={COLORS.text.light.secondary}
                         keyboardType="numeric"
                       />
@@ -475,7 +476,7 @@ export const WorkoutTab: React.FC<WorkoutTabProps> = ({
                           updatedDays[0].exercises[exerciseIndex].reps = text;
                           setDays(updatedDays);
                         }}
-                        placeholder="Reps"
+                        placeholder={t('workout.reps')}
                         placeholderTextColor={COLORS.text.light.secondary}
                       />
                       <TouchableOpacity
@@ -518,7 +519,7 @@ export const WorkoutTab: React.FC<WorkoutTabProps> = ({
             {/* Notes */}
             <TextInput
               style={styles.notesInput}
-              placeholder={'Bench Press: www.benchpress.com\nEat Oats'}
+              placeholder={t('workout.notesPlaceholder')}
               placeholderTextColor={COLORS.text.light.secondary}
               value={notes}
               onChangeText={setNotes}
@@ -526,7 +527,7 @@ export const WorkoutTab: React.FC<WorkoutTabProps> = ({
               numberOfLines={4}
             />
             <Text style={styles.wordsRemaining}>
-              {Math.max(0, MAX_NOTES_WORDS - countWords(notes))} words remaining
+              {Math.max(0, MAX_NOTES_WORDS - countWords(notes))} {t('workout.wordsRemaining')}
             </Text>
 
             {/* Submit Button */}
@@ -537,7 +538,7 @@ export const WorkoutTab: React.FC<WorkoutTabProps> = ({
               {isSubmitting ? (
                 <ActivityIndicator color={COLORS.white} />
               ) : (
-                <Text style={styles.submitButtonText}>Submit</Text>
+                <Text style={styles.submitButtonText}>{t('common.submit')}</Text>
               )}
             </TouchableOpacity>
           </ScrollView>

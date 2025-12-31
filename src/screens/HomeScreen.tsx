@@ -21,6 +21,7 @@ import Animated, {
   Easing,
 } from 'react-native-reanimated';
 import {COLORS} from '../constants/colors';
+import {t} from '../i18n';
 import {WorkoutTab} from '../features/workout/screens/WorkoutTab';
 import {ClientTab} from '../features/client/screens/ClientTab';
 import {AvailabilityTab} from '../features/availability/screens/AvailabilityTab';
@@ -34,6 +35,13 @@ import arrowBackIcon from '../assets/icons/arrow-back-white.png';
 type TabType = 'Workout' | 'Client' | 'Availability' | 'Book Slots';
 
 const TABS: TabType[] = ['Workout', 'Client', 'Availability', 'Book Slots'];
+
+const TAB_TRANSLATION_KEYS: Record<TabType, string> = {
+  Workout: 'tabs.workout',
+  Client: 'tabs.client',
+  Availability: 'tabs.availability',
+  'Book Slots': 'tabs.bookSlots',
+};
 const VISIBLE_TABS = 3;
 
 const SPRING_CONFIG = {
@@ -59,9 +67,9 @@ export const HomeScreen: React.FC = () => {
 
   const getHeaderTitle = () => {
     if (activeTab === 'Workout' && isWorkoutFormVisible) {
-      return 'Add Workout Plan';
+      return t('screens.home.addWorkoutPlan');
     }
-    return 'Workout Management';
+    return t('screens.home.workoutManagement');
   };
 
   // Calculate tab width to show exactly 3 tabs
@@ -230,7 +238,7 @@ export const HomeScreen: React.FC = () => {
                       styles.tabText,
                       activeTab === tab && styles.activeTabText,
                     ]}>
-                    {tab}
+                    {t(TAB_TRANSLATION_KEYS[tab])}
                   </Text>
                 </TouchableOpacity>
               ))}

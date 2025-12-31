@@ -8,7 +8,10 @@
     "edit": "Edit",
     "loading": "Loading...",
     "error": "Error",
-    "success": "Success"
+    "success": "Success",
+    "submit": "Submit",
+    "create": "Create",
+    "open": "Open"
   },
   "auth": {
     "signUp": {
@@ -22,13 +25,76 @@
       "password": "Password",
       "forgotPassword": "Forgot Password?",
       "noAccount": "Don't have an account?",
-      "signUpLink": "Sign Up"
+      "signUpLink": "Sign Up",
+      "signInRequired": "Please sign in to create availability"
     }
   },
   "screens": {
     "home": {
       "title": "Home",
-      "welcome": "Welcome to Wellvantage"
+      "welcome": "Welcome to Wellvantage",
+      "workoutManagement": "Workout Management",
+      "addWorkoutPlan": "Add Workout Plan"
     }
+  },
+  "tabs": {
+    "workout": "Workout",
+    "client": "Client",
+    "availability": "Availability",
+    "bookSlots": "Book Slots"
+  },
+  "bookSlots": {
+    "title": "Book Client Slots",
+    "sessionsLeft": "has",
+    "sessionsToBook": "sessions left to book by",
+    "noClients": "No clients available",
+    "availableSlots": "Available Slots:",
+    "noSlotsAvailable": "No available slots for this date"
+  },
+  "availability": {
+    "title": "Set Availability",
+    "date": "Date*",
+    "startTime": "Start Time*",
+    "endTime": "End Time*",
+    "repeatSessions": "Repeat Sessions",
+    "sessionName": "Session Name*",
+    "sessionNamePlaceholder": "Enter session name",
+    "selectDate": "Please select at least one date",
+    "createdSlots": "availability slot(s)",
+    "createError": "Failed to create availability. Please try again.",
+    "datesSelected": "dates selected"
+  },
+  "workout": {
+    "customPlans": "Custom Workout Plans",
+    "workoutNamePlaceholder": "Beginner's Workout - 3 days",
+    "day": "Day",
+    "bodyPartPlaceholder": "Body Part",
+    "exercise": "Exercise",
+    "sets": "Sets",
+    "reps": "Reps",
+    "notesPlaceholder": "Bench Press: www.benchpress.com\nEat Oats",
+    "wordsRemaining": "words remaining",
+    "deleteError": "Failed to delete workout plan",
+    "workoutNameRequired": "Please enter a workout name",
+    "dayRequired": "Please add at least one day with a body part",
+    "createError": "Failed to create workout plan"
+  },
+  "client": {
+    "assignedClients": "Assigned Clients",
+    "name": "Name",
+    "workoutAssigned": "Workout Assigned",
+    "ptPlanName": "PT Plan Name",
+    "sessionsRemaining": "Sessions Remaining",
+    "nextSessionDate": "Next Session Date",
+    "showingEntries": "Showing {{from}} to {{to}} of {{total}} entries",
+    "upcomingSessions": "Upcoming Sessions",
+    "pastSessions": "Past Sessions",
+    "date": "Date",
+    "time": "Time",
+    "customer": "Customer",
+    "action": "Action",
+    "noClients": "No clients found",
+    "noUpcomingSessions": "No upcoming sessions",
+    "noPastSessions": "No past sessions"
   }
 }

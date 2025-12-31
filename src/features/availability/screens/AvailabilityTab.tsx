@@ -17,6 +17,7 @@ import DateTimePicker, {
   DateTimePickerEvent,
 } from '@react-native-community/datetimepicker';
 import {COLORS} from '../../../constants/colors';
+import {t} from '../../../i18n';
 import {availabilityService} from '../../../services/availability';
 import {useAuth} from '../../../context/AuthContext';
 
@@ -141,12 +142,12 @@ export const AvailabilityTab: React.FC = () => {
 
   const handleCreate = useCallback(async () => {
     if (!isAuthenticated) {
-      Alert.alert('Error', 'Please sign in to create availability');
+      Alert.alert(t('common.error'), t('auth.signIn.signInRequired'));
       return;
     }
 
     if (selectedDates.length === 0) {
-      Alert.alert('Error', 'Please select at least one date');
+      Alert.alert(t('common.error'), t('availability.selectDate'));
       return;
     }
 
@@ -160,15 +161,15 @@ export const AvailabilityTab: React.FC = () => {
       });
 
       Alert.alert(
-        'Success',
-        `Created ${response.availabilityBlocks.length} availability slot(s)`,
+        t('common.success'),
+        `${t('common.create')}d ${response.availabilityBlocks.length} ${t('availability.createdSlots')}`,
       );
 
       // Reset to single date (today) after successful creation
       setSelectedDates([today]);
     } catch (error) {
       console.error('Failed to create availability:', error);
-      Alert.alert('Error', 'Failed to create availability. Please try again.');
+      Alert.alert(t('common.error'), t('availability.createError'));
     } finally {
       setIsLoading(false);
     }
@@ -190,16 +191,16 @@ export const AvailabilityTab: React.FC = () => {
       bounces={false}
       overScrollMode="never">
       <View style={styles.content}>
-        <Text style={styles.title}>Set Availability</Text>
+        <Text style={styles.title}>{t('availability.title')}</Text>
 
         {/* Date Display */}
         <View style={styles.inputGroup}>
-          <Text style={styles.label}>Date*</Text>
+          <Text style={styles.label}>{t('availability.date')}</Text>
           <View style={styles.dateInput}>
             <Text style={styles.dateInputText}>
               {selectedDates.length === 1
                 ? formatDate(selectedDates[0])
-                : `${selectedDates.length} dates selected`}
+                : `${selectedDates.length} ${t('availability.datesSelected')}`}
             </Text>
             <Image
               source={calendarIcon}
@@ -212,7 +213,7 @@ export const AvailabilityTab: React.FC = () => {
         {/* Time Inputs */}
         <View style={styles.timeRow}>
           <View style={styles.timeInputGroup}>
-            <Text style={styles.label}>Start Time*</Text>
+            <Text style={styles.label}>{t('availability.startTime')}</Text>
             <TouchableOpacity
               style={styles.timeInput}
               onPress={() => setShowStartTimePicker(true)}>
@@ -220,7 +221,7 @@ export const AvailabilityTab: React.FC = () => {
             </TouchableOpacity>
           </View>
           <View style={styles.timeInputGroup}>
-            <Text style={styles.label}>End Time*</Text>
+            <Text style={styles.label}>{t('availability.endTime')}</Text>
             <TouchableOpacity
               style={styles.timeInput}
               onPress={() => setShowEndTimePicker(true)}>
@@ -251,7 +252,7 @@ export const AvailabilityTab: React.FC = () => {
 
         {/* Repeat Sessions Toggle */}
         <View style={styles.toggleRow}>
-          <Text style={styles.toggleLabel}>Repeat Sessions</Text>
+          <Text style={styles.toggleLabel}>{t('availability.repeatSessions')}</Text>
           <Switch
             value={repeatSessions}
             onValueChange={handleRepeatSessionsChange}
@@ -291,12 +292,12 @@ export const AvailabilityTab: React.FC = () => {
 
         {/* Session Name */}
         <View style={styles.inputGroup}>
-          <Text style={styles.label}>Session Name*</Text>
+          <Text style={styles.label}>{t('availability.sessionName')}</Text>
           <TextInput
             style={styles.sessionInput}
             value={sessionName}
             onChangeText={setSessionName}
-            placeholder="Enter session name"
+            placeholder={t('availability.sessionNamePlaceholder')}
             placeholderTextColor={COLORS.text.light.secondary}
           />
         </View>
@@ -309,7 +310,7 @@ export const AvailabilityTab: React.FC = () => {
           {isLoading ? (
             <ActivityIndicator color={COLORS.white} />
           ) : (
-            <Text style={styles.createButtonText}>Create</Text>
+            <Text style={styles.createButtonText}>{t('common.create')}</Text>
           )}
         </TouchableOpacity>
       </View>
