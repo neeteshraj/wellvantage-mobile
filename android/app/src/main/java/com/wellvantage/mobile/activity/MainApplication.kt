@@ -1,4 +1,4 @@
-package com.wellvantage
+package com.wellvantage.mobile.activity
 
 import android.app.Application
 import com.facebook.react.PackageList

@@ -42,16 +42,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({children}) => {
 
   // Initialize auth state on app start
   useEffect(() => {
-    const initAuth = async () => {
+    const initAuth = () => {
       try {
         // Configure Google Sign-In
         configureGoogleSignIn();
 
-        // Check for stored tokens
-        const accessToken = await StorageService.getAuthToken();
-        const storedUser = await StorageService.get<AuthUser>(
-          STORAGE_KEYS.USER_DATA,
-        );
+        // Check for stored tokens (MMKV is synchronous)
+        const accessToken = StorageService.getAuthToken();
+        const storedUser = StorageService.get<AuthUser>(STORAGE_KEYS.USER_DATA);
 
         if (accessToken && storedUser) {
           // Set the token in API client
@@ -84,10 +82,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({children}) => {
       // Exchange with backend
       const response = await authService.googleAuth(idToken);
 
-      // Store tokens
-      await StorageService.setAuthToken(response.accessToken);
-      await StorageService.setRefreshToken(response.refreshToken);
-      await StorageService.set(STORAGE_KEYS.USER_DATA, response.user);
+      // Validate response
+      if (!response?.accessToken || !response?.refreshToken || !response?.user) {
+        console.error('Invalid auth response:', response);
+        throw new Error('Invalid authentication response from server');
+      }
+
+      // Store tokens (MMKV is synchronous)
+      StorageService.setAuthToken(response.accessToken);
+      StorageService.setRefreshToken(response.refreshToken);
+      StorageService.set(STORAGE_KEYS.USER_DATA, response.user);
 
       // Update API client
       apiClient.setAuthToken(response.accessToken);
@@ -111,10 +115,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({children}) => {
       // Sign out from Google
       await signOutFromGoogle();
 
-      // Clear stored data
-      await StorageService.removeAuthToken();
-      await StorageService.removeRefreshToken();
-      await StorageService.remove(STORAGE_KEYS.USER_DATA);
+      // Clear stored data (MMKV is synchronous)
+      StorageService.removeAuthToken();
+      StorageService.removeRefreshToken();
+      StorageService.remove(STORAGE_KEYS.USER_DATA);
 
       // Clear API client token
       apiClient.setAuthToken(null);

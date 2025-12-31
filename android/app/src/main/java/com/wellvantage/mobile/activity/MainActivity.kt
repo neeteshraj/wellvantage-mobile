@@ -1,4 +1,4 @@
-package com.wellvantage
+package com.wellvantage.mobile.activity
 
 import com.facebook.react.ReactActivity
 import com.facebook.react.ReactActivityDelegate

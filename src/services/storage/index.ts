@@ -1,12 +1,14 @@
-// Storage service using AsyncStorage
+// Storage service using MMKV
 
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import {createMMKV} from 'react-native-mmkv';
 import {STORAGE_KEYS} from '../../constants';
 
+const storage = createMMKV({id: 'wellvantage-storage'});
+
 export const StorageService = {
-  async get<T>(key: string): Promise<T | null> {
+  get<T>(key: string): T | null {
     try {
-      const value = await AsyncStorage.getItem(key);
+      const value = storage.getString(key);
       return value ? JSON.parse(value) : null;
     } catch (error) {
       console.error(`Error getting ${key} from storage:`, error);
@@ -14,9 +16,9 @@ export const StorageService = {
     }
   },
 
-  async set<T>(key: string, value: T): Promise<boolean> {
+  set<T>(key: string, value: T): boolean {
     try {
-      await AsyncStorage.setItem(key, JSON.stringify(value));
+      storage.set(key, JSON.stringify(value));
       return true;
     } catch (error) {
       console.error(`Error setting ${key} in storage:`, error);
@@ -24,19 +26,18 @@ export const StorageService = {
     }
   },
 
-  async remove(key: string): Promise<boolean> {
+  remove(key: string): boolean {
     try {
-      await AsyncStorage.removeItem(key);
-      return true;
+      return storage.remove(key);
     } catch (error) {
       console.error(`Error removing ${key} from storage:`, error);
       return false;
     }
   },
 
-  async clear(): Promise<boolean> {
+  clear(): boolean {
     try {
-      await AsyncStorage.clear();
+      storage.clearAll();
       return true;
     } catch (error) {
       console.error('Error clearing storage:', error);
@@ -45,27 +46,27 @@ export const StorageService = {
   },
 
   // Convenience methods for auth tokens
-  async getAuthToken(): Promise<string | null> {
+  getAuthToken(): string | null {
     return this.get<string>(STORAGE_KEYS.AUTH_TOKEN);
   },
 
-  async setAuthToken(token: string): Promise<boolean> {
+  setAuthToken(token: string): boolean {
     return this.set(STORAGE_KEYS.AUTH_TOKEN, token);
   },
 
-  async removeAuthToken(): Promise<boolean> {
+  removeAuthToken(): boolean {
     return this.remove(STORAGE_KEYS.AUTH_TOKEN);
   },
 
-  async getRefreshToken(): Promise<string | null> {
+  getRefreshToken(): string | null {
     return this.get<string>(STORAGE_KEYS.REFRESH_TOKEN);
   },
 
-  async setRefreshToken(token: string): Promise<boolean> {
+  setRefreshToken(token: string): boolean {
     return this.set(STORAGE_KEYS.REFRESH_TOKEN, token);
   },
 
-  async removeRefreshToken(): Promise<boolean> {
+  removeRefreshToken(): boolean {
     return this.remove(STORAGE_KEYS.REFRESH_TOKEN);
   },
 };

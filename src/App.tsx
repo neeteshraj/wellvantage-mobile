@@ -7,6 +7,7 @@ import {StatusBar, StyleSheet, useColorScheme, View} from 'react-native';
 import {SafeAreaProvider} from 'react-native-safe-area-context';
 
 import {ErrorBoundary} from './components';
+import {AuthProvider} from './context/AuthContext';
 import {RootNavigator} from './navigation';
 
 function App() {
@@ -16,9 +17,11 @@ function App() {
     <ErrorBoundary>
       <SafeAreaProvider>
         <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
-        <View style={styles.container}>
-          <RootNavigator />
-        </View>
+        <AuthProvider>
+          <View style={styles.container}>
+            <RootNavigator />
+          </View>
+        </AuthProvider>
       </SafeAreaProvider>
     </ErrorBoundary>
   );

@@ -1,89 +1,70 @@
-// API Client configuration
+// API Client configuration using Axios
 
+import axios, {AxiosInstance, AxiosRequestConfig, AxiosError} from 'axios';
 import {API} from '../../constants';
-import {ApiResponse} from '../../types';
-
-type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
-
-interface RequestConfig {
-  method?: HttpMethod;
-  headers?: Record<string, string>;
-  body?: unknown;
-  timeout?: number;
-}
 
 class ApiClient {
-  private baseUrl: string;
-  private defaultHeaders: Record<string, string>;
-  private authToken: string | null = null;
+  private client: AxiosInstance;
 
   constructor(baseUrl: string) {
-    this.baseUrl = baseUrl;
-    this.defaultHeaders = {
-      'Content-Type': 'application/json',
-      Accept: 'application/json',
-    };
+    this.client = axios.create({
+      baseURL: baseUrl,
+      timeout: API.TIMEOUT,
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+      },
+    });
+
+    // Response interceptor for error handling
+    this.client.interceptors.response.use(
+      response => response,
+      (error: AxiosError) => {
+        if (error.response?.data) {
+          const data = error.response.data as {message?: string};
+          throw new Error(data.message || 'Request failed');
+        }
+        throw error;
+      },
+    );
   }
 
   setAuthToken(token: string | null) {
-    this.authToken = token;
-  }
-
-  private getHeaders(): Record<string, string> {
-    const headers = {...this.defaultHeaders};
-    if (this.authToken) {
-      headers.Authorization = `Bearer ${this.authToken}`;
-    }
-    return headers;
-  }
-
-  async request<T>(endpoint: string, config: RequestConfig = {}): Promise<ApiResponse<T>> {
-    const {method = 'GET', headers = {}, body, timeout = API.TIMEOUT} = config;
-
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), timeout);
-
-    try {
-      const response = await fetch(`${this.baseUrl}${endpoint}`, {
-        method,
-        headers: {...this.getHeaders(), ...headers},
-        body: body ? JSON.stringify(body) : undefined,
-        signal: controller.signal,
-      });
-
-      clearTimeout(timeoutId);
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || 'Request failed');
-      }
-
-      return data;
-    } catch (error) {
-      clearTimeout(timeoutId);
-      throw error;
+    if (token) {
+      this.client.defaults.headers.common.Authorization = `Bearer ${token}`;
+    } else {
+      delete this.client.defaults.headers.common.Authorization;
     }
   }
 
-  get<T>(endpoint: string, config?: Omit<RequestConfig, 'method' | 'body'>) {
-    return this.request<T>(endpoint, {...config, method: 'GET'});
+  async get<T>(endpoint: string, config?: AxiosRequestConfig) {
+    const response = await this.client.get<T>(endpoint, config);
+    return response.data;
   }
 
-  post<T>(endpoint: string, body?: unknown, config?: Omit<RequestConfig, 'method' | 'body'>) {
-    return this.request<T>(endpoint, {...config, method: 'POST', body});
+  async post<T>(endpoint: string, data?: unknown, config?: AxiosRequestConfig) {
+    const response = await this.client.post<T>(endpoint, data, config);
+    return response.data;
   }
 
-  put<T>(endpoint: string, body?: unknown, config?: Omit<RequestConfig, 'method' | 'body'>) {
-    return this.request<T>(endpoint, {...config, method: 'PUT', body});
+  async put<T>(endpoint: string, data?: unknown, config?: AxiosRequestConfig) {
+    const response = await this.client.put<T>(endpoint, data, config);
+    return response.data;
   }
 
-  patch<T>(endpoint: string, body?: unknown, config?: Omit<RequestConfig, 'method' | 'body'>) {
-    return this.request<T>(endpoint, {...config, method: 'PATCH', body});
+  async patch<T>(endpoint: string, data?: unknown, config?: AxiosRequestConfig) {
+    const response = await this.client.patch<T>(endpoint, data, config);
+    return response.data;
   }
 
-  delete<T>(endpoint: string, config?: Omit<RequestConfig, 'method' | 'body'>) {
-    return this.request<T>(endpoint, {...config, method: 'DELETE'});
+  async delete<T>(endpoint: string, config?: AxiosRequestConfig) {
+    const response = await this.client.delete<T>(endpoint, config);
+    return response.data;
+  }
+
+  // Get the underlying axios instance for advanced use cases
+  getInstance(): AxiosInstance {
+    return this.client;
   }
 }
 

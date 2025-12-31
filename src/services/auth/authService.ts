@@ -13,14 +13,20 @@ interface RefreshTokenResponse {
   accessToken: string;
 }
 
+interface ApiResponse<T> {
+  success: boolean;
+  data: T;
+}
+
 export const authService = {
   /**
    * Authenticate with Google ID token
    */
   async googleAuth(idToken: string): Promise<GoogleAuthResponse> {
-    const response = await apiClient.post<GoogleAuthResponse>('/auth/google', {
-      idToken,
-    });
+    const response = await apiClient.post<ApiResponse<GoogleAuthResponse>>(
+      '/auth/google',
+      {idToken},
+    );
     return response.data;
   },
 
@@ -28,11 +34,9 @@ export const authService = {
    * Refresh access token using refresh token
    */
   async refreshToken(refreshToken: string): Promise<RefreshTokenResponse> {
-    const response = await apiClient.post<RefreshTokenResponse>(
+    const response = await apiClient.post<ApiResponse<RefreshTokenResponse>>(
       '/auth/refresh',
-      {
-        refreshToken,
-      },
+      {refreshToken},
     );
     return response.data;
   },
@@ -41,9 +45,7 @@ export const authService = {
    * Get current user profile
    */
   async getProfile(): Promise<AuthUser> {
-    const response = await apiClient.get<{id: string; email: string}>(
-      '/auth/me',
-    );
-    return response.data as AuthUser;
+    const response = await apiClient.get<ApiResponse<AuthUser>>('/auth/me');
+    return response.data;
   },
 };

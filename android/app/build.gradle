@@ -77,9 +77,9 @@ android {
     buildToolsVersion rootProject.ext.buildToolsVersion
     compileSdk rootProject.ext.compileSdkVersion
 
-    namespace "com.wellvantage"
+    namespace "com.wellvantage.mobile.activity"
     defaultConfig {
-        applicationId "com.wellvantage"
+        applicationId "com.wellvantage.mobile.activity"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
