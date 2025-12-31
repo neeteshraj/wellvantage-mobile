@@ -2,10 +2,11 @@
  * Wellvantage - Main App Component
  */
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { StatusBar, StyleSheet, useColorScheme } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import BootSplash from 'react-native-bootsplash';
 
 import { ErrorBoundary } from './components';
 import { AuthProvider } from './context/AuthContext';
@@ -22,6 +23,10 @@ import { RootNavigator } from './navigation';
 
 const Root = (): React.JSX.Element => {
   const isDarkMode = useColorScheme() === 'dark';
+
+  useEffect(() => {
+    BootSplash.hide({ fade: true });
+  }, []);
 
   return (
     <GestureHandlerRootView style={styles.container}>

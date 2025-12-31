@@ -31,6 +31,8 @@
 		DB67D93FBCA54D15B10E3958 /* Poppins-SemiBold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = C8B98754752E4C3993623A0E /* Poppins-SemiBold.ttf */; };
 		F2C6505278804748AED23B07 /* .gitkeep in Resources */ = {isa = PBXBuildFile; fileRef = CF965A3D6E98422689799A14 /* .gitkeep */; };
 		F722354FAF2B4098AAEFD0B8 /* Poppins-MediumItalic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 86D3772E9BA341C4BF55E7F8 /* Poppins-MediumItalic.ttf */; };
+		F7EAC5A2221046B3ACC05062 /* BootSplash.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = D9F421145FDA4418AEDE12DD /* BootSplash.storyboard */; };
+		1FB46DC517034995B49F304B /* Colors.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = ADDA4249D0014ECC8D8C212E /* Colors.xcassets */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -63,6 +65,8 @@
 		EE4CA0F168D148739DB47CDB /* Poppins-Light.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "Poppins-Light.ttf"; path = "../src/assets/fonts/Poppins-Light.ttf"; sourceTree = "<group>"; };
 		F5A61F04C6C34AAE9D1C5A98 /* Poppins-Black.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "Poppins-Black.ttf"; path = "../src/assets/fonts/Poppins-Black.ttf"; sourceTree = "<group>"; };
 		FFEC7C9C7FF94250B8E92077 /* Poppins-Regular.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = "Poppins-Regular.ttf"; path = "../src/assets/fonts/Poppins-Regular.ttf"; sourceTree = "<group>"; };
+		D9F421145FDA4418AEDE12DD /* BootSplash.storyboard */ = {isa = PBXFileReference; name = "BootSplash.storyboard"; path = "wellvantage/BootSplash.storyboard"; sourceTree = "<group>"; fileEncoding = undefined; lastKnownFileType = unknown; explicitFileType = undefined; includeInIndex = 0; };
+		ADDA4249D0014ECC8D8C212E /* Colors.xcassets */ = {isa = PBXFileReference; name = "Colors.xcassets"; path = "wellvantage/Colors.xcassets"; sourceTree = "<group>"; fileEncoding = undefined; lastKnownFileType = folder.assetcatalog; explicitFileType = undefined; includeInIndex = 0; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -85,6 +89,8 @@
 				13B07FB61A68108700A75B9A /* Info.plist */,
 				81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */,
 				13B07FB81A68108700A75B9A /* PrivacyInfo.xcprivacy */,
+				D9F421145FDA4418AEDE12DD /* BootSplash.storyboard */,
+				ADDA4249D0014ECC8D8C212E /* Colors.xcassets */,
 			);
 			name = wellvantage;
 			sourceTree = "<group>";
@@ -245,6 +251,8 @@
 				B22274A4B8C0415C92298B4E /* Poppins-Italic.ttf in Resources */,
 				F722354FAF2B4098AAEFD0B8 /* Poppins-MediumItalic.ttf in Resources */,
 				F2C6505278804748AED23B07 /* .gitkeep in Resources */,
+				F7EAC5A2221046B3ACC05062 /* BootSplash.storyboard in Resources */,
+				1FB46DC517034995B49F304B /* Colors.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
